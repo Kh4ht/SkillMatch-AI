@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request
+from flask import Flask, render_template, request, redirect
 import os
 
 # Get the directory where this script is located
@@ -16,15 +16,41 @@ app = Flask(
     static_folder=static_dir,
 )
 
+SPORTS = [
+    "Basketball",
+    "Soccer",
+    "Table Tennis",
+]
+REGISTRANTS = {}
+
 
 @app.route("/")
 def index():
-    # if "name" in request.args:
-    #     name = request.args["name"]
-    # else:
-    #     name = "User"
-    name = request.args.get("name", "User")
-    return render_template("index.html", placeholder=name)
+    return render_template("index.html", sports=SPORTS)
+
+
+@app.route("/register", methods={"POST"})
+def register():
+    error = False
+    em = ""
+    if not request.form.get("name"):
+        error = True
+        em = "You Need To Enter Your Name!"
+    if request.form.get("sport") not in SPORTS:
+        error = True
+        em += "\n\nYou Need To Enter Your Favorite Sport!"
+
+    if error:
+        return render_template("error.html", error_message=em)
+    # if not request.form.get("name") or request.form.get("sport") not in SPORTS:
+
+    REGISTRANTS[request.form.get("name")] = request.form.get("sport")
+    return redirect("/registrants")
+
+
+@app.route("/registrants")
+def method_name():
+    return render_template("registrants.html", registrants=REGISTRANTS)
 
 
 if __name__ == "__main__":
