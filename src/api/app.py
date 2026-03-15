@@ -1,5 +1,8 @@
 from flask import Flask, render_template, request, redirect
 import os
+from text_extractor import extract_resume_text
+from database import Database
+from candidate_info_extractor import *
 
 # Get the directory where this script is located
 script_dir = os.path.dirname(os.path.abspath(__file__))
@@ -16,42 +19,31 @@ app = Flask(
     static_folder=static_dir,
 )
 
-SPORTS = [
-    "Basketball",
-    "Soccer",
-    "Table Tennis",
-]
-REGISTRANTS = {}
 
-
+######################################################################
 @app.route("/")
 def index():
-    return render_template("index.html", sports=SPORTS)
+    return render_template("index.html")
 
 
-@app.route("/register", methods={"POST"})
-def register():
-    error = False
-    em = ""
-    if not request.form.get("name"):
-        error = True
-        em = "You Need To Enter Your Name!"
-    if request.form.get("sport") not in SPORTS:
-        error = True
-        em += "\n\nYou Need To Enter Your Favorite Sport!"
+######################################################################
+@app.route("/upload", methods=["POST"])
+def upload():
+    files = request.files.getlist("uploaded_resumes")
 
-    if error:
-        return render_template("error.html", error_message=em)
-    # if not request.form.get("name") or request.form.get("sport") not in SPORTS:
+    for file in files:
+        candidate = Candidate.from_string(extract_resume_text(file), file.filename)
 
-    REGISTRANTS[request.form.get("name")] = request.form.get("sport")
-    return redirect("/registrants")
+    return redirect("/")
 
 
-@app.route("/registrants")
-def method_name():
-    return render_template("registrants.html", registrants=REGISTRANTS)
+######################################################################
+@app.route("/results")
+def results():
+    candidates = Database.execute("SELECT * FROM candidates")
+    return render_template("results.html", candidates=candidates)
 
 
+# Run Flask App
 if __name__ == "__main__":
     app.run(debug=True)
