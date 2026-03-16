@@ -9,9 +9,9 @@
 
         <br><br>
 
-        <div id="skills-container"></div>
-
         <input type="text" id="skill-input" placeholder="Type a skill">
+        
+        <div id="skills-container"></div>
 
         <input type="hidden" name="skills" id="skills-hidden">
 
@@ -24,5 +24,8 @@
     <br><br>
 
     <a href="/results">View Results</a>
+
+    <script src="{{ url_for('static', filename='js/skills.js') }}"></script>
+    <script src="/static/js/skills.js"></script>
 
 {% endblock %}
