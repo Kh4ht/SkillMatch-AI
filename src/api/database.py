@@ -47,7 +47,10 @@ class Database:
                 return cursor.rowcount  # Return number of affected rows
 
 
-# if Database.add_candidate("Jamie bong", "jamiebt@gmial.com", "0612340971", "jamie.pdf"):
-#     print("Candidate added successfully.")
-# else:
-#     print("Failed to add candidate. Email may already exist.")
+# print(Database.execute("SELECT * FROM candidates"))
+
+"""
+sqlite3 src/api/instance/skillmatch.db
+.mode box
+SELECT * FROM candidates;
+"""
