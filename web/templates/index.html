@@ -1,35 +1,149 @@
 {% extends "layout.html" %}
 
+{% block title %}Home - SkillMatch AI{% endblock title %}
+
+{% block style %}
+    <style>
+        .upload-form {
+            background: white;
+            padding: 2rem;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            max-width: 500px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            text-align: center;
+            padding: 15px;
+        }
+
+        h2 {
+            text-align: center;
+            margin: 10px;
+        }
+
+        p {
+            text-align: center;
+            margin: 20px;
+        }
+
+        .submit-button {
+            width: auto; 
+            color: white;
+            cursor: pointer;
+            background-color: rgb(62, 134, 62);
+            transition: 0.2s ease;
+            padding: 10px;
+            box-shadow: 0px 2px 8px rgba(0, 0, 0, 0.1);
+            font-weight: bold;
+            border-radius: 10px;
+            border-color: rgb(14, 49, 80);
+            border: none;
+
+            /* Center the button within its container */
+            display: block;
+            margin: 0 auto;  /* This centers it horizontally */
+        }
+
+        .submit-button:hover {
+            background-color: green;
+            transition: background-color 0.3s ease;
+        }
+
+        .added-skill {
+            background-color: transparent;
+            border-radius: 9999px;
+            border-color: #006ee4;
+            padding: 10px;
+            margin: 4px;
+            font-weight: bold;
+
+            display: inline-block;  /* Ens proper spacing */
+            position: relative;     /* For positioning the pseudo-element */
+
+        }
+
+        .added-skill:hover {
+            color: rgb(72, 0, 0);
+            border-color: red;
+            transition: 0.3s ease;
+        }
+
+        /* Add X on hover */
+        .added-skill:hover::after {
+            content: "✕";           /* The X symbol */
+            position: absolute;
+            left: 50%;               /* Position from left edge */
+            top: 50%;
+            transform: translate(-50%, -50%);  /* Center both horizontally and vertically */
+            color: rgba(255, 0, 0, 0.1);
+            font-weight: bold;
+            font-size: 40px;
+        }
+    </style>
+    
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/input_type_text.css') }}">
+
+{% endblock style %}
+
 {% block body %}
 
-    <h1>Upload Resumes</h1>
-    <form action="/upload" method="post" enctype="multipart/form-data">
+    <div class="hero">
+        <h1>Welcome To SkillMatch AI</h1>
+        <p>Upload resumes and find the best candidates !</p>
+    </div>
 
-        <input type="file" name="uploaded_resumes" accept=".pdf" multiple required>
+    <div class="upload-form">
+        <!-- enctype="multipart/form-data" Is Necessary, To Take Uploaded Files As Input -->
+        <form action="/upload" method="post" enctype="multipart/form-data">
 
-        <br>
-        <br>
+            <h2>Upload Resumes</h2>
+            <input type="file"
+                   name="uploaded_resumes"
+                   accept=".pdf"
+                   multiple
+                   required >
+            
 
-        <input type="text" id="skill-input" placeholder="Type a skill">
-        
-        <div id="skills-container">
+            <br><br>
 
-        </div>
+            
+            <h2>Add Required Skills</h2>
+            <p style="margin: 0; text-align: left;">
+                Type the skills you are looking for.<br>
+                write a single word (keyword) for better accuracy.
+            </p>
+            <input type="text" 
+                   id="skill-input"
+                   placeholder="Name a Skill . . ."
+                   pattern="\S+"
+                   title="Spaces are not allowed. Use single words only."
+                   oninvalid="this.setCustomValidity('Please enter a single word without spaces')"
+                   oninput="this.setCustomValidity('')" >
+            <p id="space-warning"
+               style="color: red; display: block; font-size: 12px; margin: 0; text-align:left;" >
+            </p>
+            <div id="skills-container">
 
-        <input type="hidden" name="skills" id="skills-hidden">
+            </div>
 
-        <br>
-        <br>
+            <input type="hidden" 
+                   name="skills"
+                   id="skills-hidden">
 
-        <button type="submit">Upload Resume</button>
 
-    </form>
+            <br> <br>
 
-    <br><br>
+            
+            <h2>Minimum Education</h2>
 
-    <a href="/results">View Results</a>
+            <!-- submit -->
+            <button class="submit-button" type="submit">Analyze Resumes</button>
+
+        </form>
+    </div>
 
     <script src="{{ url_for('static', filename='js/skills.js') }}"></script>
-    <script src="/static/js/skills.js"></script>
 
 {% endblock %}

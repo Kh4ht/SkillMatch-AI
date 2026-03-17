@@ -94,6 +94,17 @@ def delete_candidates():
     return redirect("/results")
 
 
+######################################################################
+
+
+@app.route("/about")
+def about():
+    return render_template("about.html")
+
+
+######################################################################
+
+
 # Run Flask App
 if __name__ == "__main__":
     app.run(debug=True)

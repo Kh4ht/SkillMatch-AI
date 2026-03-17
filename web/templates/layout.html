@@ -11,8 +11,22 @@
         {% block style %}{% endblock %}
     </head>
     <body>
+        <!-- Navigation Bar -->
+        <nav class="navbar">
+            <div class="nav-container">
+                <a href="{{ url_for('index') }}" class="nav-logo">SkillMatch AI</a>
+                <ul class="nav-menu">
+                    <li><a href="{{ url_for('index') }}" {% if request.endpoint == 'index' %}class="active"{% endif %}>Home</a></li>
+                    <li><a href="{{ url_for('results') }}" {% if request.endpoint == 'results' %}class="active"{% endif %}>Results</a></li>
+                    <li><a href="{{ url_for('about') }}" {% if request.endpoint == 'about' %}class="active"{% endif %}>About</a></li>
+                </ul>
+            </div>
+        </nav>
 
-        {% block body %}{% endblock %}
+        <!-- Main Content -->
+        <main class="content">
+            {% block body %}{% endblock %}
+        </main>
 
     </body>
 </html>

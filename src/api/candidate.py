@@ -42,5 +42,5 @@ class Candidate:
             extract_experience(resume_text),
             extract_education(resume_text),
             resume_filename,
-            0,  #
+            0,  # TODO: Add match_score Calculation Logic
         )
