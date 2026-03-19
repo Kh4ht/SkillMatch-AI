@@ -99,14 +99,28 @@
         margin-bottom: 15px;
     }
 </style>
+
+<link rel="stylesheet" href="{{ url_for('static', filename='css/input_type_text.css') }}">
 {% endblock style %}
 
 {% block body %}
     <h1>Results</h1>
     
     <!-- Delete button (initially disabled) -->
-    <button class="delete-btn" id="deleteSelected" onclick="deleteSelectedRows()" disabled>Delete Selected</button>
+    <button class="delete-btn"
+            id="deleteSelected"
+            onclick="deleteSelectedRows()"
+            disabled>
+            Delete Selected
+    </button>
+    <input type="text"
+           id="search_txt"
+           placeholder="Search . . .">
+
+        
+    <br><br><br>
     
+
     <!-- Select All checkbox -->
     <div class="select-all">
         <label>
@@ -123,7 +137,9 @@
                     <th>Email</th>
                     <th>Phone</th>
                     <th>Resume filename</th>
-                    <th>Match score</th>
+                    <th>Education</th>
+                    <th>Skills</th>
+                    <th>Match %</th>
                 </tr>
             </thead>
             <tbody>
@@ -136,6 +152,12 @@
                         <td>{{ item["email"] }}</td>
                         <td>{{ item["phone"] }}</td>
                         <td>{{ item["resume_filename"] }}</td>
+                        <td>{{ item["education"] }}</td>
+                        <td>
+                            {% for s in item["skills"].split(" | ") %}
+                                {{ s + ","}}<br>
+                            {% endfor %}
+                        </td>
                         <td>{{ item["match_score"] }}</td>
                     </tr>
                 {% endfor %}

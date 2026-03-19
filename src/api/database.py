@@ -54,3 +54,19 @@ sqlite3 src/api/instance/skillmatch.db
 .mode box
 SELECT * FROM candidates;
 """
+
+
+# -- Add a new column --
+"""
+ALTER TABLE #table_name ADD COLUMN #column_name #TYPE NOT NULL DEAULT #value;
+"""
+
+# -- rename table --
+"""
+ALTER TABLE #old_name RENAME TO #new_name;
+"""
+
+# -- delete table --
+"""
+DROP TABLE #table_name
+"""

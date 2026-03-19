@@ -1,13 +1,13 @@
 from PyPDF2 import PdfReader
 import re
 
-EDUCATION_WORDS = [
-    "bachelor",
-    "master",
-    "phd",
-    "university",
-    "college",
-]
+EDUCATION_WORDS: dict[str, int] = {
+    "none": 0,
+    "highschool": 1,
+    "bachelor": 2,
+    "master": 3,
+    "phd": 4,
+}
 
 
 # Text Extractors ###########################################################
@@ -65,42 +65,46 @@ def extract_skills(text: str, required_skills: list[str]) -> list[str]:
     found = []
 
     for skill in required_skills:
-        if skill in text_lower:
+        if skill in text_lower and skill not in found:
             found.append(skill)
 
     return found
 
 
-def extract_education(text: str) -> list[str]:
+def extract_education(text: str) -> str:
     lines = text.split("\n")
 
-    results = []
+    if not lines:
+        return "unknown"
+
+    result: str = "none"
+    c = EDUCATION_WORDS["none"]
 
     for line in lines:
         for word in EDUCATION_WORDS:
             if word in line.lower():
-                results.append(line.strip())
+                if EDUCATION_WORDS[word] > c:
+                    result = word
+    return result
 
-    return results
 
+# def extract_experience(text: str) -> list[str]:
+#     lines = text.split("\n")
 
-def extract_experience(text: str) -> list[str]:
-    lines = text.split("\n")
+#     experience = []
+#     capture = False
 
-    experience = []
-    capture = False
+#     for line in lines:
+#         if "experience" in line.lower():
+#             capture = True
+#             continue
 
-    for line in lines:
-        if "experience" in line.lower():
-            capture = True
-            continue
+#         if capture:
+#             if line.strip() == "":
+#                 break
+#             experience.append(line)
 
-        if capture:
-            if line.strip() == "":
-                break
-            experience.append(line)
-
-    return experience
+#     return experience
 
 
 def extract_name(text: str) -> str:

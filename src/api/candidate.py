@@ -8,39 +8,59 @@ class Candidate:
         name,
         email,
         phone,
-        skills,
-        experience,
-        education,
         resume_filename,
         match_score,
+        education,
+        skills,
     ):
         self.name: str = name
         self.email: str = email
         self.phone: str = phone
-        self.skills = skills
-        self.experience: str = experience
         self.education: str = education
         self.resume_filename: str = resume_filename
         self.match_score: float = match_score
+        self.skills: list[str] = skills
 
     def add_to_database(self):
         Database.execute(
-            "INSERT INTO candidates (name, email, phone, resume_filename, match_score) VALUES (?, ?, ?, ?, ?)",
-            (self.name, self.email, self.phone, self.resume_filename, self.match_score),
+            "INSERT INTO candidates (name, email, phone, resume_filename, match_score, education, skills) VALUES (?, ?, ?, ?, ?, ?, ?)",
+            (
+                self.name,
+                self.email,
+                self.phone,
+                self.resume_filename,
+                self.match_score * 100,
+                self.education,
+                " | ".join(self.skills),
+            ),
         )
 
     @classmethod
     def from_string(
-        cls, resume_text: str, resume_filename: str, required_skills: list[str]
+        cls,
+        resume_text: str,
+        resume_filename: str,
+        required_skills: list[str],
+        min_education: str,
     ):
+        education = extract_education(resume_text)
+
+        found_skills = extract_skills(resume_text, required_skills)
+
+        def calculate_match_score() -> float:
+
+            total_weight = len(required_skills) + 1  # 1 for education
+
+            have_min_edu = EDUCATION_WORDS[education] >= EDUCATION_WORDS[min_education]
+
+            return (len(found_skills) + have_min_edu) / total_weight
 
         return cls(
-            extract_name(resume_text),
-            extract_email(resume_text),
-            extract_phone(resume_text),
-            extract_skills(resume_text, required_skills),
-            extract_experience(resume_text),
-            extract_education(resume_text),
-            resume_filename,
-            0,  # TODO: Add match_score Calculation Logic
+            name=extract_name(resume_text),
+            email=extract_email(resume_text),
+            phone=extract_phone(resume_text),
+            education=education,
+            resume_filename=resume_filename,
+            match_score=calculate_match_score(),
+            skills=found_skills,
         )

@@ -1,6 +1,6 @@
 from flask import Flask, render_template, request, redirect, url_for, flash
 import os
-from extractors import extract_text_as_list, extract_text_as_str
+from extractors import extract_text_as_list, extract_text_as_str, EDUCATION_WORDS
 from database import Database
 from candidate import Candidate
 
@@ -21,15 +21,16 @@ app = Flask(
 app.secret_key = "dev-key-please-change-in-production"
 
 
-######################################################################
+# region index
 
 
 @app.route("/")
 def index():
-    return render_template("index.html")
+    return render_template("index.html", EDUCATION_WORDS=EDUCATION_WORDS)
 
 
-######################################################################
+# endregion
+# region upload
 
 
 @app.route("/upload", methods=["POST"])
@@ -41,6 +42,10 @@ def upload():
     required_skills = request.form.get("skills")
     if required_skills is None:
         raise ValueError("skills field is missing")
+
+    min_education = request.form.get("min_education")
+    if min_education is None:
+        raise ValueError("min_education field is missing")
 
     required_skills = [
         s.strip() for s in required_skills.split(",")
@@ -54,6 +59,7 @@ def upload():
                 resume_text=extracted_text,
                 resume_filename=r.filename or "unknown",
                 required_skills=required_skills,
+                min_education=min_education,
             ).add_to_database()
 
         else:
@@ -63,7 +69,8 @@ def upload():
     return redirect("/")
 
 
-######################################################################
+# endregion
+# region results
 
 
 @app.route("/results")
@@ -72,7 +79,8 @@ def results():
     return render_template("results.html", candidates=candidates)
 
 
-######################################################################
+# endregion
+# region delete_candidates
 
 
 @app.route("/delete_candidates", methods=["POST"])
@@ -94,7 +102,8 @@ def delete_candidates():
     return redirect("/results")
 
 
-######################################################################
+# endregion
+# region about
 
 
 @app.route("/about")
@@ -102,7 +111,7 @@ def about():
     return render_template("about.html")
 
 
-######################################################################
+# endregion
 
 
 # Run Flask App

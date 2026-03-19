@@ -28,29 +28,6 @@
             margin: 20px;
         }
 
-        .submit-button {
-            width: auto; 
-            color: white;
-            cursor: pointer;
-            background-color: rgb(62, 134, 62);
-            transition: 0.2s ease;
-            padding: 10px;
-            box-shadow: 0px 2px 8px rgba(0, 0, 0, 0.1);
-            font-weight: bold;
-            border-radius: 10px;
-            border-color: rgb(14, 49, 80);
-            border: none;
-
-            /* Center the button within its container */
-            display: block;
-            margin: 0 auto;  /* This centers it horizontally */
-        }
-
-        .submit-button:hover {
-            background-color: green;
-            transition: background-color 0.3s ease;
-        }
-
         .added-skill {
             background-color: transparent;
             border-radius: 9999px;
@@ -59,9 +36,8 @@
             margin: 4px;
             font-weight: bold;
 
-            display: inline-block;  /* Ens proper spacing */
-            position: relative;     /* For positioning the pseudo-element */
-
+            display: inline-block; /* Ens proper spacing */
+            position: relative; /* For positioning the pseudo-element */
         }
 
         .added-skill:hover {
@@ -72,18 +48,30 @@
 
         /* Add X on hover */
         .added-skill:hover::after {
-            content: "✕";           /* The X symbol */
+            content: "✕"; /* The X symbol */
             position: absolute;
-            left: 50%;               /* Position from left edge */
+            left: 50%; /* Position from left edge */
             top: 50%;
-            transform: translate(-50%, -50%);  /* Center both horizontally and vertically */
+            transform: translate(-50%, -50%); /* Center both horizontally and vertically */
             color: rgba(255, 0, 0, 0.1);
             font-weight: bold;
             font-size: 40px;
         }
+
+        select {
+            width: 100%;
+            padding: 6px;
+            font-size: 16px;
+            margin: 2px;
+            appearance: none;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            cursor: pointer;
+            border-radius: 10px;
+        }
     </style>
     
     <link rel="stylesheet" href="{{ url_for('static', filename='css/input_type_text.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/button_type_submit.css') }}">
 
 {% endblock style %}
 
@@ -110,9 +98,8 @@
 
             
             <h2>Add Required Skills</h2>
-            <p style="margin: 0; text-align: left;">
-                Type the skills you are looking for.<br>
-                write a single word (keyword) for better accuracy.
+            <p style="margin: 0; text-align: left; font-size: 14px;">
+                For Better Accuracy, Write A Single Word (keyword).
             </p>
             <input type="text" 
                    id="skill-input"
@@ -137,6 +124,15 @@
 
             
             <h2>Minimum Education</h2>
+            <select name="min_education" id="">
+                {% for word in EDUCATION_WORDS %}
+                    <option value="{{ word.lower() }}">{{ word }}</option>
+                {% endfor %}
+            </select>
+
+
+            <br><br>
+
 
             <!-- submit -->
             <button class="submit-button" type="submit">Analyze Resumes</button>
