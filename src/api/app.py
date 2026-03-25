@@ -115,5 +115,5 @@ def about():
 
 
 # Run Flask App
-if __name__ == "__main__":
+if __name__ == "__main__":  # to prevent unwanted execution
     app.run(debug=True)

@@ -1,3 +1,6 @@
+import sqlite3
+from venv import logger
+
 from database import Database
 from extractors import *
 
@@ -22,18 +25,24 @@ class Candidate:
         self.skills: list[str] = skills
 
     def add_to_database(self):
-        Database.execute(
-            "INSERT INTO candidates (name, email, phone, resume_filename, match_score, education, skills) VALUES (?, ?, ?, ?, ?, ?, ?)",
-            (
-                self.name,
-                self.email,
-                self.phone,
-                self.resume_filename,
-                self.match_score * 100,
-                self.education,
-                " | ".join(self.skills),
-            ),
-        )
+        try:
+            Database.execute(
+                """INSERT INTO candidates (name, email, phone, resume_filename, match_score, education, skills) 
+                   VALUES (?, ?, ?, ?, ?, ?, ?)""",
+                (
+                    self.name,
+                    self.email,
+                    self.phone,
+                    self.resume_filename,
+                    self.match_score * 100,
+                    self.education,
+                    " | ".join(self.skills),
+                ),
+            )
+        except sqlite3.IntegrityError as e:
+            # Handle Duplicate Entries
+            logger.error
+            raise e
 
     @classmethod
     def from_string(

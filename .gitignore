@@ -17210,3 +17210,7 @@ src/api/__pycache__/candidate.cpython-314.pyc
 .venv311/lib/python3.11/site-packages/wrapt-2.1.2.dist-info/top_level.txt
 .venv311/lib/python3.11/site-packages/wrapt-2.1.2.dist-info/WHEEL
 .venv311/lib/python3.11/site-packages/wrapt-2.1.2.dist-info/licenses/LICENSE
+.DS_Store
+src/api/__pycache__/candidate.cpython-311.pyc
+src/api/__pycache__/database.cpython-311.pyc
+src/api/__pycache__/extractors.cpython-311.pyc

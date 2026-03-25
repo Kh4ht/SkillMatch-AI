@@ -2,15 +2,24 @@ from PyPDF2 import PdfReader
 import re
 
 EDUCATION_WORDS: dict[str, int] = {
-    "none": 0,
-    "highschool": 1,
-    "bachelor": 2,
-    "master": 3,
     "phd": 4,
+    "doctorate": 4,
+    #
+    "master": 3,
+    "masters": 3,
+    #
+    "bachelor": 2,
+    "bachelors": 2,
+    #
+    "highschool": 1,
+    "high school": 1,
+    "diploma": 1,
+    #
+    "none": 0,
 }
 
 
-# Text Extractors ###########################################################
+# region Text Extractors
 
 
 def _extract_text(file) -> str | None:
@@ -47,7 +56,8 @@ def extract_text_as_str(file) -> str | None:
     return _extract_text(file)
 
 
-# Info Extractors ###########################################################
+# endregion
+# region Info Extractors
 
 
 def extract_email(text: str):
@@ -55,9 +65,24 @@ def extract_email(text: str):
     return match.group(0) if match else "unknown"
 
 
-def extract_phone(text: str):
-    match = re.search(r"\+?\d[\d\s\-]{8,15}", text)
-    return match.group(0) if match else "unknown"
+def extract_phone(text: str) -> str:
+    """Extract phone number"""
+    patterns = [
+        r"\+?[\d\s\-\(\)]{10,20}",  # International format
+        r"\d{3}[-\.\s]?\d{3}[-\.\s]?\d{4}",  # US format
+        r"\(\d{3}\)\s*\d{3}-\d{4}",  # (123) 456-7890
+    ]
+
+    for pattern in patterns:
+        match = re.search(pattern, text)
+        if match:
+            # Clean up the match
+            phone = match.group()
+            # Remove extra spaces and clean
+            phone = " ".join(phone.split())
+            return phone
+
+    return "unknown"
 
 
 def extract_skills(text: str, required_skills: list[str]) -> list[str]:
@@ -75,6 +100,7 @@ def extract_education(text: str) -> str:
     lines = text.split("\n")
 
     if not lines:
+        print("text is empty or null")
         return "unknown"
 
     result: str = "none"
@@ -108,10 +134,30 @@ def extract_education(text: str) -> str:
 
 
 def extract_name(text: str) -> str:
+    """Extract name from resume using heuristics"""
     lines = text.split("\n")
 
-    for line in lines[:5]:
-        if len(line.split()) <= 4 and "@" not in line:
-            return line.strip()
+    # Look for capitalized phrases in first few lines
+    for i in range(min(5, len(lines))):
+        line = lines[i].strip()
+        if not line:
+            continue
+
+        # Check if line looks like a name (2-4 words, all capitalized or title case)
+        words = line.split()
+        if 1 < len(words) <= 4:
+            # Check if all words are capitalized
+            if all(w[0].isupper() for w in words if w):
+                # Skip lines that look like email or phone
+                if "@" not in line and not any(c.isdigit() for c in line):
+                    # Skip common non-name headers
+                    if not any(
+                        word.lower() in line.lower()
+                        for word in ["resume", "cv", "curriculum", "vitae"]
+                    ):
+                        return line
 
     return "unknown"
+
+
+# endregion

@@ -97,6 +97,11 @@
     
     .select-all {
         margin-bottom: 15px;
+        cursor: pointer;
+    }
+
+    input[type="checkbox"] {
+        cursor: pointer;
     }
 </style>
 
@@ -124,7 +129,9 @@
     <!-- Select All checkbox -->
     <div class="select-all">
         <label>
-            <input type="checkbox" id="selectAll" onchange="toggleAll(this)"> Select All
+            <input type="checkbox"
+                   id="selectAll"
+                   onchange="toggleAll(this)"> Select All
         </label>
     </div>
     
@@ -146,7 +153,10 @@
                 {% for item in candidates %}
                     <tr>
                         <td class="checkbox-col">
-                            <input type="checkbox" name="selected_candidates" value="{{ item['id'] }}" onchange="updateDeleteButton()">
+                            <input type="checkbox"
+                                   name="selected_candidates"
+                                   value="{{ item['id'] }}"
+                                   onchange="updateDeleteButton()">
                         </td>
                         <td>{{ item["name"] }}</td>
                         <td>{{ item["email"] }}</td>
