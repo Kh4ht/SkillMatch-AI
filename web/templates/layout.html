@@ -14,6 +14,20 @@
         <!-- Navigation Bar -->
         <nav class="navbar">
             <div class="nav-container">
+                <a href="{{ url_for('index') }}" class="nav-logo">
+    <svg width="32" height="32" viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg">
+        <rect width="40" height="40" rx="9" fill="#0f172a"/>
+        <rect x="7" y="7" width="13" height="17" rx="2" fill="#1e3a5f" stroke="#2563eb" stroke-width="0.8"/>
+        <path d="M15 7 L20 12 L15 12 Z" fill="#0f172a" stroke="#2563eb" stroke-width="0.8"/>
+        <rect x="22" y="17" width="3" height="7"  rx="1" fill="#2563eb" opacity="0.4"/>
+        <rect x="26" y="14" width="3" height="10" rx="1" fill="#2563eb" opacity="0.7"/>
+        <rect x="30" y="11" width="3" height="13" rx="1" fill="#2563eb"/>
+        <circle cx="31" cy="11" r="4" fill="#0f172a"/>
+        <circle cx="31" cy="11" r="3.5" fill="#16a34a"/>
+        <path d="M29 11 L30.5 12.5 L33 9.5" fill="none" stroke="white" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+    Skill<span style="color:#2563eb;font-weight:500;">Match</span> <span style="font-weight:300;color:#93c5fd;">AI</span>
+</a>
                 <a href="{{ url_for('index') }}" class="nav-logo">SkillMatch AI</a>
                 <ul class="nav-menu">
                     <li><a href="{{ url_for('index') }}" {% if request.endpoint == 'index' %}class="active"{% endif %}>Home</a></li>
