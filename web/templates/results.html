@@ -12,13 +12,24 @@
     
     table {
         width: 100%;
+        table-layout: fixed; /* forces fixed column widths */
         border-collapse: collapse;
         background-color: white;
         box-shadow: 0 2px 8px rgba(0,0,0,0.1);
         border-radius: 8px;
         overflow: hidden;
     }
-    
+
+    /* Define specific widths for each column */
+    th:nth-child(1), td:nth-child(1) { width: 10px; }   /* Select column */
+    th:nth-child(2), td:nth-child(2) { width: 150px; }  /* Name */
+    th:nth-child(3), td:nth-child(3) { width: 220px; }  /* Email */
+    th:nth-child(4), td:nth-child(4) { width: 150px; }  /* Phone */
+    th:nth-child(5), td:nth-child(5) { width: 150px; }  /* Resume filename */
+    th:nth-child(6), td:nth-child(6) { width: 150px; }  /* Education */
+    th:nth-child(7), td:nth-child(7) { width: 150px; }  /* Skills */
+    th:nth-child(8), td:nth-child(8) { width: 80px; }   /* Match % */
+
     thead {
         background-color: #2c3e50;
         color: white;
@@ -72,22 +83,12 @@
     /* New styles for delete button and checkboxes */
     .delete-btn {
         background-color: #e74c3c;
+        border-color: #e74c3c;
         color: white;
-        border: none;
-        padding: 10px 20px;
-        border-radius: 4px;
-        cursor: pointer;
-        font-size: 14px;
-        margin-bottom: 20px;
     }
-    
     .delete-btn:hover {
-        background-color: #c0392b;
-    }
-    
-    .delete-btn:disabled {
-        background-color: #bdc3c7;
-        cursor: not-allowed;
+        background-color: white;
+        color: #e74c3c;
     }
     
     .checkbox-col {
@@ -102,6 +103,12 @@
 
     input[type="checkbox"] {
         cursor: pointer;
+    }
+
+    .search-section {
+        display: flex;
+        align-items: center;  /* Vertically centers items */
+        gap: 10px;            /* Adds space between elements */
     }
 </style>
 
@@ -118,9 +125,18 @@
             disabled>
             Delete Selected
     </button>
-    <input type="text"
-           id="search_txt"
-           placeholder="Search . . .">
+
+    <br><br>
+
+    <!-- Search Section -->
+    <div class="search-section">
+        <input type="text"
+               id="search_txt_input"
+               placeholder="Search . . .">
+    
+        <button type="button"
+                id="clear_search_btn">Clear</button>
+    </div>
 
         
     <br><br><br>
@@ -139,7 +155,7 @@
         <table>
             <thead>
                 <tr>
-                    <th class="checkbox-col">Select</th>
+                    <th class="checkbox-col">S</th>
                     <th>Name</th>
                     <th>Email</th>
                     <th>Phone</th>
@@ -174,24 +190,137 @@
             </tbody>
         </table>
     </form>
-    
+
+{% endblock body %}
+{% block script %}
+
+    <script src="{{ url_for('static', filename='js/utils.js') }}"></script>
+
     <script>
-        function toggleAll(source) {
+        const clearSearchInputBtn = document.getElementById('clear_search_btn');
+        const searchInput = document.getElementById('search_txt_input');
+        
+        // Search functionality
+        function searchTable()
+        {
+            const searchTerm = searchInput.value.toLowerCase().trim();
+            const table = document.querySelector('table');
+            const tbody = table.querySelector('tbody');
+            const rows = tbody.querySelectorAll('tr');
+            
+            let hasMatches = false;
+            
+            rows.forEach(row =>
+            {
+                // Skip the "no results" row
+                if (row.id === 'noResultsRow')
+                    return;
+
+                // Get all text content from the row (excluding the checkbox column)
+                const cells = row.querySelectorAll('td:not(.checkbox-col)');
+                let rowText = '';
+                
+                cells.forEach(cell =>
+                {
+                    rowText += cell.textContent.toLowerCase() + ' ';
+                });
+                
+                // Check if search term matches any content in the row
+                if (searchTerm === '' || rowText.includes(searchTerm))
+                {
+                    row.style.display = '';  // Show row
+                    hasMatches = true;
+                }
+                else
+                {
+                    row.style.display = 'none';  // Hide row
+                }
+            });
+
+            // Update clear button disabled state
+            clearSearchInputBtn.disabled = searchTerm === '';
+            
+            // Optional: Show "no results" message
+            showNoResultsMessage(!hasMatches && searchTerm !== '');
+        }
+        
+        function showNoResultsMessage(show)
+        {
+            const table = document.querySelector('table');
+            let noResultsRow = document.getElementById('noResultsRow');
+            
+            if (show)
+            {
+                if (!noResultsRow)
+                {
+                    noResultsRow = document.createElement('tr');
+                    noResultsRow.id = 'noResultsRow';
+                    const colspan = document.querySelectorAll('thead th').length;
+                    noResultsRow.innerHTML = `<td colspan="${colspan}" style="text-align: center; padding: 40px;">
+                        No matching candidates found
+                    </td>`;
+                    table.querySelector('tbody').appendChild(noResultsRow);
+                }
+                else
+                {
+                    noResultsRow.style.display = '';
+                }
+            }
+            else if (noResultsRow)
+            {
+                noResultsRow.style.display = 'none';
+            }
+        }
+        
+        // Add event listeners when page loads
+        document.addEventListener('DOMContentLoaded', function()
+        {            
+            // Search as you type
+            searchInput.addEventListener('input', searchTable);
+            
+            // Clear button handler
+            if (clearSearchInputBtn)
+            {
+                clearSearchInputBtn.addEventListener('click', function()
+                {
+                    searchInput.value = '';
+                    searchTable();
+                    searchInput.focus();
+                });
+            }
+
+            // Call searchTable on load to set initial button state
+            searchTable();
+        });
+
+
+
+
+
+
+
+
+        function toggleAll(source)
+        {
             const checkboxes = document.querySelectorAll('input[name="selected_candidates"]');
             checkboxes.forEach(checkbox => checkbox.checked = source.checked);
             updateDeleteButton();
         }
         
-        function updateDeleteButton() {
+        function updateDeleteButton()
+        {
             const checkboxes = document.querySelectorAll('input[name="selected_candidates"]:checked');
             const deleteBtn = document.getElementById('deleteSelected');
             deleteBtn.disabled = checkboxes.length === 0;
         }
         
-        function deleteSelectedRows() {
-            if (confirm('Are you sure you want to delete the selected candidates?')) {
+        function deleteSelectedRows()
+        {
+            if (confirm('Are you sure you want to delete the selected candidates?'))
+            {
                 document.getElementById('deleteForm').submit();
             }
         }
     </script>
-{% endblock %}
+
+{% endblock script %}

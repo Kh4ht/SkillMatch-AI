@@ -3,12 +3,17 @@
     <head>
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-        <title>{% block title %}SkillMatch AI{% endblock %}</title>
+        <title>
+            {% block title %}
+                SkillMatch AI
+            {% endblock title %}
+        </title>
         
         <!-- Link to main stylesheet -->
         <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 
-        {% block style %}{% endblock %}
+        {% block style %}
+        {% endblock %}
     </head>
     <body>
         <!-- Navigation Bar -->
@@ -25,8 +30,11 @@
 
         <!-- Main Content -->
         <main class="content">
-            {% block body %}{% endblock %}
+            {% block body %}
+            {% endblock %}
         </main>
 
+        {% block script %}
+        {% endblock script %}
     </body>
 </html>
