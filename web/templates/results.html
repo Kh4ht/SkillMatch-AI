@@ -66,19 +66,7 @@
     td:last-child {
         font-weight: 600;
     }
-    
-    /* Color code match scores */
-    td:last-child[data-score="high"] {
-        color: #27ae60;
-    }
-    
-    td:last-child[data-score="medium"] {
-        color: #f39c12;
-    }
-    
-    td:last-child[data-score="low"] {
-        color: #e74c3c;
-    }
+
     
     /* New styles for delete button and checkboxes */
     .delete-btn {
@@ -135,7 +123,9 @@
                placeholder="Search . . .">
     
         <button type="button"
-                id="clear_search_btn">Clear</button>
+                title="Clear Search Input"
+                id="clear_search_btn"
+                disabled>Clear</button>
     </div>
 
         
@@ -184,7 +174,7 @@
                                 {{ s + ","}}<br>
                             {% endfor %}
                         </td>
-                        <td>{{ item["match_score"] }}</td>
+                        <td class="match-score">{{ item["match_score"] }}</td>
                     </tr>
                 {% endfor %}
             </tbody>
@@ -271,7 +261,58 @@
                 noResultsRow.style.display = 'none';
             }
         }
-        
+
+        function clearSearchInput()
+        {
+            searchInput.value = '';
+            searchTable();
+            searchInput.focus();
+        }
+
+        function clamp(value, min, max)
+        {
+            return Math.min(Math.max(value, min), max);
+        }
+
+        function setMatchScoreColors()
+        {
+            const scoreCells = document.querySelectorAll('.match-score');
+            scoreCells.forEach(cell =>
+            {
+                const score = parseFloat(cell.textContent);
+
+                if (!isNaN(score))
+                {
+                    const ratio = Math.min(100, Math.max(0, score)) / 100;
+
+                    const red = Math.floor(255 * (1 - ratio));
+                    const green = Math.floor(255 * ratio);
+                    
+                    cell.style.color = `rgb(${red}, ${green}, 0)`;
+                }
+            });
+        }
+        function setMatchScoreColors2()
+        {
+            const scoreCells = document.querySelectorAll('.match-score');
+            scoreCells.forEach(cell =>
+            {
+                const score = parseFloat(cell.textContent);
+
+                if (!isNaN(score))
+                {
+                    const ratio = Math.min(100, Math.max(0, score)) / 100;
+
+
+                    const red = Math.floor(255 * clamp((1 - ratio), 0, 0.45) * 2); // 0.5 to 1 maps to 255-0 red and 0 to 0.5 maps to 255 red
+
+                    const green = Math.floor(255 * clamp(ratio, 0, 0.45) * 2); // 0 to 0.5 maps to 0-255 green and 0.5 to 1 maps to 255 green
+
+                    cell.style.color = `rgb(${red}, ${green}, 0)`;
+                }
+            });
+        }
+
         // Add event listeners when page loads
         document.addEventListener('DOMContentLoaded', function()
         {            
@@ -281,16 +322,13 @@
             // Clear button handler
             if (clearSearchInputBtn)
             {
-                clearSearchInputBtn.addEventListener('click', function()
-                {
-                    searchInput.value = '';
-                    searchTable();
-                    searchInput.focus();
-                });
+                clearSearchInputBtn.addEventListener('click', clearSearchInput);
             }
 
             // Call searchTable on load to set initial button state
             searchTable();
+
+            setMatchScoreColors2();
         });
 
 

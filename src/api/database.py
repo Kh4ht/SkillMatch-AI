@@ -70,3 +70,15 @@ ALTER TABLE #old_name RENAME TO #new_name;
 """
 DROP TABLE #table_name
 """
+
+# -- Insert with all columns specified --
+"""
+INSERT INTO table_name (column1_name, column2_name, column3_name) 
+VALUES (value1, value2, value3);
+"""
+
+# -- Insert without specifying columns (must provide values for ALL columns) --
+"""
+INSERT INTO table_name 
+VALUES (value1, value2, value3);
+"""
