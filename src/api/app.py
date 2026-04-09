@@ -112,6 +112,15 @@ def about():
 
 
 # endregion
+# region login
+
+
+@app.route("/login")
+def login():
+    return render_template("login.html")
+
+
+# endregion
 
 
 # Run Flask App
