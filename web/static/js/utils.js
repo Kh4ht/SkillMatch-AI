@@ -3,10 +3,9 @@ function emptyTextInput(inputElement)
     if (inputElement & inputElement.value !== undefined)
     {
         inputElement.value = '';
-    }
-    else
+    } else
     {
-        console.error('Invalid input element provided !')
+        console.error('Invalid input element provided !');
     }
 }
 
@@ -17,16 +16,15 @@ function emptyTextInputById(inputId)
     if (inputElement)
     {
         inputElement.value = '';
-    }
-    else
+    } else
     {
-        console.error(`Input element with ID ${inputId} not found`)
+        console.error(`Input element with ID ${inputId} not found`);
     }
 }
 
 function emptyMultipleInputs(...inputElements)
 {
-    inputElements.forEach(input => 
+    inputElements.forEach(input =>
     {
         if (input && input.value !== undefined)
         {

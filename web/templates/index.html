@@ -1,145 +1,148 @@
-{% extends "layout.html" %}
+{% extends "layout.html" %} {% block title %}Home - SkillMatch AI{% endblock
+title %} {% block style %}
+<style>
+    .upload-form {
+        background: white;
+        padding: 2rem;
+        border-radius: 8px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        max-width: 500px;
+        margin: 0 auto;
+    }
 
-{% block title %}Home - SkillMatch AI{% endblock title %}
+    h1 {
+        text-align: center;
+        padding: 15px;
+    }
 
-{% block style %}
-    <style>
-        .upload-form {
-            background: white;
-            padding: 2rem;
-            border-radius: 8px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-            max-width: 500px;
-            margin: 0 auto;
-        }
+    h2 {
+        text-align: center;
+        margin: 10px;
+    }
 
-        h1 {
-            text-align: center;
-            padding: 15px;
-        }
+    p {
+        text-align: center;
+        margin: 20px;
+    }
 
-        h2 {
-            text-align: center;
-            margin: 10px;
-        }
+    .added-skill {
+        background-color: transparent;
+        border-radius: 9999px;
+        border-color: #006ee4;
+        padding: 10px;
+        margin: 4px;
+        font-weight: bold;
 
-        p {
-            text-align: center;
-            margin: 20px;
-        }
+        display: inline-block; /* Ens proper spacing */
+        position: relative; /* For positioning the pseudo-element */
+    }
 
-        .added-skill {
-            background-color: transparent;
-            border-radius: 9999px;
-            border-color: #006ee4;
-            padding: 10px;
-            margin: 4px;
-            font-weight: bold;
+    .added-skill:hover {
+        color: rgb(72, 0, 0);
+        border-color: red;
+        transition: 0.3s ease;
+    }
 
-            display: inline-block; /* Ens proper spacing */
-            position: relative; /* For positioning the pseudo-element */
-        }
+    /* Add X on hover */
+    .added-skill:hover::after {
+        content: "✕"; /* The X symbol */
+        position: absolute;
+        left: 50%; /* Position from left edge */
+        top: 50%;
+        transform: translate(
+            -50%,
+            -50%
+        ); /* Center both horizontally and vertically */
+        color: rgba(255, 0, 0, 0.1);
+        font-weight: bold;
+        font-size: 40px;
+    }
 
-        .added-skill:hover {
-            color: rgb(72, 0, 0);
-            border-color: red;
-            transition: 0.3s ease;
-        }
+    select {
+        width: 100%;
+        padding: 6px;
+        font-size: 16px;
+        margin: 2px;
+        appearance: none;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        cursor: pointer;
+        border-radius: 10px;
+    }
+</style>
 
-        /* Add X on hover */
-        .added-skill:hover::after {
-            content: "✕"; /* The X symbol */
-            position: absolute;
-            left: 50%; /* Position from left edge */
-            top: 50%;
-            transform: translate(-50%, -50%); /* Center both horizontally and vertically */
-            color: rgba(255, 0, 0, 0.1);
-            font-weight: bold;
-            font-size: 40px;
-        }
+<link
+    rel="stylesheet"
+    href="{{ url_for('static', filename='css/input_type_text.css') }}" />
+<link
+    rel="stylesheet"
+    href="{{ url_for('static', filename='css/button_type_submit.css') }}" />
 
-        select {
-            width: 100%;
-            padding: 6px;
-            font-size: 16px;
-            margin: 2px;
-            appearance: none;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-            cursor: pointer;
-            border-radius: 10px;
-        }
-    </style>
-    
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/input_type_text.css') }}">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/button_type_submit.css') }}">
+{% endblock style %} {% block body %}
 
-{% endblock style %}
+<div class="hero">
+    <h1>Welcome To SkillMatch AI</h1>
+    <p>Upload resumes and find the best candidates !</p>
+</div>
 
-{% block body %}
+<div class="upload-form">
+    <!-- enctype="multipart/form-data" Is Necessary, To Take Uploaded Files As Input -->
+    <form action="/upload" method="post" enctype="multipart/form-data">
+        <h2>Upload Resumes</h2>
+        <input
+            type="file"
+            name="uploaded_resumes"
+            accept=".pdf"
+            multiple
+            required />
 
-    <div class="hero">
-        <h1>Welcome To SkillMatch AI</h1>
-        <p>Upload resumes and find the best candidates !</p>
-    </div>
+        <br /><br />
 
-    <div class="upload-form">
-        <!-- enctype="multipart/form-data" Is Necessary, To Take Uploaded Files As Input -->
-        <form action="/upload" method="post" enctype="multipart/form-data">
+        <h2>Add Required Skills</h2>
+        <p style="margin: 0; text-align: left; font-size: 14px">
+            For Better Accuracy, Write A Single Word (keyword).
+        </p>
+        <input
+            type="text"
+            id="skill-input"
+            placeholder="Name a Skill . . ."
+            pattern="\S+"
+            title="Spaces are not allowed. Use single words only."
+            oninvalid="
+                this.setCustomValidity(
+                    'Please enter a single word without spaces',
+                )
+            "
+            oninput="this.setCustomValidity('')" />
+        <p
+            id="space-warning"
+            style="
+                color: red;
+                display: block;
+                font-size: 12px;
+                margin: 0;
+                text-align: left;
+            "></p>
+        <div id="skills-container"></div>
 
-            <h2>Upload Resumes</h2>
-            <input type="file"
-                   name="uploaded_resumes"
-                   accept=".pdf"
-                   multiple
-                   required >
-            
+        <input type="hidden" name="skills" id="skills-hidden" />
 
-            <br><br>
+        <br />
+        <br />
 
-            
-            <h2>Add Required Skills</h2>
-            <p style="margin: 0; text-align: left; font-size: 14px;">
-                For Better Accuracy, Write A Single Word (keyword).
-            </p>
-            <input type="text" 
-                   id="skill-input"
-                   placeholder="Name a Skill . . ."
-                   pattern="\S+"
-                   title="Spaces are not allowed. Use single words only."
-                   oninvalid="this.setCustomValidity('Please enter a single word without spaces')"
-                   oninput="this.setCustomValidity('')" >
-            <p id="space-warning"
-               style="color: red; display: block; font-size: 12px; margin: 0; text-align:left;" >
-            </p>
-            <div id="skills-container">
+        <h2>Minimum Education</h2>
+        <select name="min_education" id="">
+            {% for word in EDUCATION_WORDS %}
+            <option value="{{ word.lower() }}">{{ word }}</option>
+            {% endfor %}
+        </select>
 
-            </div>
+        <br /><br />
 
-            <input type="hidden" 
-                   name="skills"
-                   id="skills-hidden">
+        <!-- submit -->
+        <button type="submit">Analyze Resumes</button>
+    </form>
+</div>
 
-
-            <br> <br>
-
-            
-            <h2>Minimum Education</h2>
-            <select name="min_education" id="">
-                {% for word in EDUCATION_WORDS %}
-                    <option value="{{ word.lower() }}">{{ word }}</option>
-                {% endfor %}
-            </select>
-
-
-            <br><br>
-
-
-            <!-- submit -->
-            <button type="submit">Analyze Resumes</button>
-
-        </form>
-    </div>
-
-    <script src="{{ url_for('static', filename='js/skills.js') }}"></script>
+<script src="{{ url_for('static', filename='js/skills.js') }}"></script>
 
 {% endblock %}

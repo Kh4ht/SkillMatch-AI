@@ -55,7 +55,6 @@ sqlite3 src/api/instance/skillmatch.db
 SELECT * FROM candidates;
 """
 
-
 # -- Add a new column --
 """
 ALTER TABLE #table_name ADD COLUMN #column_name #TYPE NOT NULL DEAULT #value;
@@ -81,4 +80,29 @@ VALUES (value1, value2, value3);
 """
 INSERT INTO table_name 
 VALUES (value1, value2, value3);
+"""
+
+# -- List all triggers --
+"""
+SELECT name FROM sqlite_master WHERE type='trigger';
+"""
+
+# -- Delete a trigger if needed --
+"""
+DROP TRIGGER IF EXISTS auto_create_user_settings;
+"""
+
+# -- Reset auto-increment counter --
+"""
+DELETE FROM sqlite_sequence WHERE name='users';
+"""
+
+# -- List all tables --
+"""
+.tables
+"""
+
+# -- Check your SQLite version --
+"""
+SELECT sqlite_version();
 """
