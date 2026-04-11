@@ -4,6 +4,8 @@ from extractors import extract_text_as_list, extract_text_as_str, EDUCATION_WORD
 from database import Database
 from candidate import Candidate
 
+
+
 # Get the directory where this script is located
 script_dir = os.path.dirname(os.path.abspath(__file__))
 # Go up one level to project root (from web/api/ to SkillMatch-AI/)
