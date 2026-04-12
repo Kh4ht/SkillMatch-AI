@@ -124,7 +124,11 @@ def login():
 
 # endregion
 
-
+@app.route("/register")
+def register():  # تأكد أن الاسم هنا register وليس login
+    return render_template("register.html")
 # Run Flask App
 if __name__ == "__main__":  # to prevent unwanted execution
     app.run(debug=True)
+
+ 
