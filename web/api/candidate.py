@@ -26,7 +26,7 @@ class Candidate:
 
     def add_to_database(self):
         try:
-            Database.execute(
+            Database.execute_set(
                 """INSERT INTO candidates (name, email, phone, resume_filename, match_score, education, skills) 
                    VALUES (?, ?, ?, ?, ?, ?, ?)""",
                 (

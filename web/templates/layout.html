@@ -11,6 +11,10 @@
         
         <!-- Link to main stylesheet -->
         <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+        <link rel="stylesheet" href="{{ url_for('static', filename='css/buttons.css') }}">
+        <!-- Font Awesome for icons -->
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+
 
         {% block style %}
         {% endblock %}
@@ -19,13 +23,43 @@
         <!-- Top Navigation Bar -->
         <nav class="navbar">
             <div class="nav-container">
-                <a href="{{ url_for('index') }}" class="nav-logo">SkillMatch AI</a>
+                <!-- Logo (always leads to welcome page) -->
+                <a href="{{ url_for('index') }}" class="nav-logo">
+                    <i class="fas fa-brain"></i> SkillMatch AI
+                </a>
+
+                <!-- Center/Left nav links (core features) -->
                 <ul class="nav-menu">
                     <li><a href="{{ url_for('index') }}" {% if request.endpoint == 'index' %}class="active"{% endif %}>Home</a></li>
                     <li><a href="{{ url_for('results') }}" {% if request.endpoint == 'results' %}class="active"{% endif %}>Results</a></li>
-                    <li><a href="{{ url_for('login') }}" {% if request.endpoint == 'login' %}class="active"{% endif %}>Login</a></li>
+
                     <li><a href="{{ url_for('about') }}" {% if request.endpoint == 'about' %}class="active"{% endif %}>About</a></li>
                 </ul>
+                        
+                <!-- Right-side account menu -->
+                <div class="nav-account">
+                    {% if current_user.is_authenticated %}
+                        <!-- Logged in: show avatar/dropdown -->
+                        <div class="dropdown">
+                            <button class="dropbtn">
+                                <i class="fas fa-user-circle"></i> {{ current_user.username }}
+                                <i class="fas fa-chevron-down"></i>
+                            </button>
+                            <div class="dropdown-content">
+                                <a href="{{ url_for('profile') }}"><i class="fas fa-id-card"></i> My Profile</a>
+                                <!-- <a href="{{ url_for('dashboard') }}"><i class="fas fa-chart-line"></i> Dashboard</a> -->
+                                <a href="{{ url_for('settings') }}"><i class="fas fa-cog"></i> Settings</a>
+                                <hr>
+                                <a href="{{ url_for('logout') }}"><i class="fas fa-sign-out-alt"></i> Logout</a>
+                            </div>
+                        </div>
+                    {% else %}
+                        <!-- Logged out: simple login button -->
+                        <a href="{{ url_for('login') }}" class="btn-login">
+                            <i class="fas fa-sign-in-alt"></i> Login
+                        </a>
+                    {% endif %}
+                </div>
             </div>
         </nav>
 

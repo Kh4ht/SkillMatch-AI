@@ -3,8 +3,6 @@
 /* Variables */
 :root {
   --nav-hover-color: #0000005b;
-  --btn-color: rgb(62, 134, 62);
-  --btn-bg-color: #bdc3c7;
 }
 
 /* Reset and base styles */
@@ -20,48 +18,6 @@ body {
   background-color: #f5f5f5;
 }
 
-/*
-    button
-*/
-button {
-  width: auto;
-  color: white;
-  cursor: pointer;
-  background-color: var(--btn-color);
-  transition: 0.2s ease;
-  padding: 10px 15px;
-  box-shadow: 0px 2px 8px rgba(0, 0, 0, 0.1);
-  font-weight: bold;
-  font-size: 14px;
-  border-radius: 10px;
-  border-color: var(--btn-color);
-  /* border: none; */
-
-  /* Center the button within its container */
-  display: block;
-  margin: 0 auto;
-  /* This centers it horizontally */
-}
-
-button:hover {
-  color: var(--btn-color);
-  background-color: white;
-  transition: 0.3s ease;
-}
-
-button:disabled {
-  color: white;
-  background-color: var(--btn-bg-color);
-  cursor: not-allowed;
-  border-color: var(--btn-bg-color);
-}
-
-button:disabled:hover {
-  color: white;
-  background-color: var(--btn-bg-color);
-  cursor: not-allowed;
-  transition: none;
-}
 
 /* Navigation Bar Styles */
 .navbar {

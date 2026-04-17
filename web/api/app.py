@@ -1,6 +1,10 @@
 from flask import Flask, render_template, request, redirect, url_for, flash
 import os
-from extractors import extract_text_as_list, extract_text_as_str, EDUCATION_WORDS
+from extractors import (
+    extract_text_as_list,
+    extract_text_as_str,
+    EDUCATION_WORDS,
+)
 from database import Database
 from candidate import Candidate
 
@@ -30,6 +34,34 @@ def index():
 
 
 # endregion
+# #####################################################################
+
+# #####################################################################
+# region results
+
+
+@app.route("/results")
+def results():
+    candidates = Database.execute_select("SELECT * FROM candidates")
+    return render_template("results.html", candidates=candidates)
+
+
+# endregion
+# #####################################################################
+
+# #####################################################################
+# region about
+
+
+@app.route("/about")
+def about():
+    return render_template("about.html")
+
+
+# endregion
+# #####################################################################
+
+# #####################################################################
 # region upload
 
 
@@ -70,16 +102,9 @@ def upload():
 
 
 # endregion
-# region results
+# #####################################################################
 
-
-@app.route("/results")
-def results():
-    candidates = Database.execute("SELECT * FROM candidates")
-    return render_template("results.html", candidates=candidates)
-
-
-# endregion
+# #####################################################################
 # region delete_candidates
 
 
@@ -88,7 +113,7 @@ def delete_candidates():
     selected_ids = request.form.getlist("selected_candidates")
 
     if selected_ids:
-        Database.execute(
+        Database.execute_set(
             "DELETE FROM candidates WHERE id IN ({})".format(
                 ",".join(["?"] * len(selected_ids))
             ),
@@ -103,26 +128,12 @@ def delete_candidates():
 
 
 # endregion
-# region about
+# #####################################################################
+
+# #####################################################################
 
 
-@app.route("/about")
-def about():
-    return render_template("about.html")
-
-
-# endregion
-# region login
-
-
-@app.route("/login")
-def login():
-    return render_template("login.html")
-
-
-# endregion
-
-
-# Run Flask App
+# region Run Flask App
 if __name__ == "__main__":  # to prevent unwanted execution
     app.run(debug=True)
+# endregion
