@@ -1,8 +1,25 @@
+# region IMPORTS
+
+
 import sqlite3
 from venv import logger
 
-from database import Database
-from extractors import *
+from .database import Database
+from .extractors import (
+    extract_name,
+    extract_email,
+    extract_phone,
+    extract_education,
+    EDUCATION_WORDS,
+    extract_skills,
+)
+
+
+# endregion
+# #####################################################################
+
+# #####################################################################
+# region Candidate Class
 
 
 class Candidate:
@@ -73,3 +90,6 @@ class Candidate:
             match_score=calculate_match_score(),
             skills=found_skills,
         )
+
+
+# endregion

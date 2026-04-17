@@ -1,12 +1,29 @@
+# region IMPORTS
+
+
+# Standard Library Imports
 from flask import Flask, render_template, request, redirect, url_for, flash
+from flask_login import LoginManager
 import os
-from extractors import (
-    extract_text_as_list,
+
+# Local Imports
+from models.database import Database
+from models.candidate import Candidate
+from models.user import User
+from models.extractors import (
     extract_text_as_str,
     EDUCATION_WORDS,
 )
-from database import Database
-from candidate import Candidate
+
+# Import blueprints
+from auth import auth_bp
+
+
+# endregion
+# #####################################################################
+
+# #####################################################################
+# region FLASK SETUP
 
 
 # Get the directory where this script is located
@@ -23,10 +40,37 @@ app = Flask(
     template_folder=template_dir,
     static_folder=static_dir,
 )
+
 app.secret_key = "dev-key-please-change-in-production"
 
+# Register Blueprints
+app.register_blueprint(auth_bp)
 
-# region index
+
+# endregion
+# #####################################################################
+
+# #####################################################################
+# region LOGIN SETUP
+
+
+login_manager = LoginManager()
+login_manager.init_app(app)
+login_manager.login_view = "login"  # type: ignore # Will create this route
+login_manager.login_message = "Please log in to access this page"
+login_manager.login_message_category = "info"
+
+
+@login_manager.user_loader
+def load_user(user_id):
+    return User.get_user_by_ID(user_id)
+
+
+# endregion
+# #####################################################################
+
+# #####################################################################
+# region INDEX
 
 
 @app.route("/")
@@ -38,7 +82,7 @@ def index():
 # #####################################################################
 
 # #####################################################################
-# region results
+# region RESULTS
 
 
 @app.route("/results")
@@ -51,7 +95,7 @@ def results():
 # #####################################################################
 
 # #####################################################################
-# region about
+# region ABOUT
 
 
 @app.route("/about")
@@ -63,7 +107,7 @@ def about():
 # #####################################################################
 
 # #####################################################################
-# region upload
+# region UPLOAD
 
 
 @app.route("/upload", methods=["POST"])
@@ -106,7 +150,7 @@ def upload():
 # #####################################################################
 
 # #####################################################################
-# region delete_candidates
+# region DELETE CANDIDATES
 
 
 @app.route("/delete_candidates", methods=["POST"])
@@ -134,7 +178,7 @@ def delete_candidates():
 # #####################################################################
 
 
-# region Run Flask App
+# region RUN APP
 if __name__ == "__main__":  # to prevent unwanted execution
     app.run(debug=True)
 # endregion

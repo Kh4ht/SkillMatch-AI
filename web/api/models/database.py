@@ -1,5 +1,16 @@
+# region IMPORTS
+
+
+# Standard library imports
 import sqlite3, os
 from typing import Any
+
+
+# endregion
+# #####################################################################
+
+# #####################################################################
+# region Database Class
 
 
 class Database:
@@ -7,7 +18,9 @@ class Database:
 
     # Get database path (relative to this file)
     __db_path = os.path.join(
-        os.path.dirname(os.path.dirname(__file__)), "instance", "skillmatch.db"
+        os.path.dirname(os.path.dirname(os.path.dirname(__file__))),
+        "instance",
+        "skillmatch.db",
     )
 
     @classmethod
@@ -216,6 +229,8 @@ class Database:
             conn.commit()
             return cursor.rowcount  # Return number of affected rows
 
+
+# endregion
 
 # print(Database.execute("SELECT * FROM candidates"))
 

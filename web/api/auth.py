@@ -1,125 +1,43 @@
-import secrets
-from typing import Any
+# region IMPORTS
 
+# Standard library imports
+import secrets
+from flask_login import login_user, logout_user
 from flask import Blueprint, render_template, request, redirect, url_for, flash, session
-from werkzeug.security import generate_password_hash, check_password_hash
-from .database import Database
 from datetime import datetime, timedelta
-import re
+
+# Local imports
+from models.database import Database
+from models.user_auth import UserAuth
+from models.user import User
+
+
+# endregion
+# #####################################################################
+
+# #####################################################################
+# region SETUP Blueprint
+
 
 auth_bp = Blueprint("auth", __name__, url_prefix="/auth")
 
 
-class UserAuth:
-    @staticmethod
-    def create_new_user(username: str, email: str, password: str) -> tuple[bool, str]:
-        """Create a new user with validation and return (success, message/user_id)"""
+# endregion
+# #####################################################################
 
-        # Validate inputs
-        if not username or len(username) < 3:
-            return False, "Username must be at least 3 characters"
-
-        if not re.match(r"^[a-zA-Z0-9_]+$", username):
-            return False, "Username can only contain letters, numbers, and underscores"
-
-        if not re.match(r"^[^@]+@[^@]+\.[^@]+$", email):
-            return False, "Invalid email format"
-
-        if len(password) < 8:
-            return False, "Password must be at least 8 characters"
-
-        # Hash the password
-        password_hash = generate_password_hash(password)
-
-        try:
-            result = Database.execute_set(
-                """
-                INSERT INTO users (username, email, password_hash)
-                VALUES (?, ?, ?)
-            """,
-                (username, email, password_hash),
-            )
-
-            # Get the last inserted user_id
-            user = Database.execute_select("SELECT last_insert_rowid() as user_id")
-            user_id = user[0]["user_id"]
-
-            return True, user_id
-        except Exception as e:
-            if "UNIQUE" in str(e):
-                return False, "Username or email already exists"
-            return False, f"Error creating user: {str(e)}"
-
-    @staticmethod
-    def is_user_registered(email_or_username: str) -> bool:
-        """Check if a user with the given email or username already exists"""
-        result = Database.execute_select_one(
-            """
-            SELECT user_id FROM users 
-            WHERE email = ? OR username = ?
-        """,
-            (email_or_username, email_or_username),
-        )
-        return result is not None
-
-    @staticmethod
-    def authenticate_user(
-        email_or_username, password
-    ) -> tuple[dict[str, Any] | None, str]:
-        """Authenticate user and return user data"""
-        # Execute query and get results
-        user = Database.execute_select_one(
-            """
-            SELECT user_id, username, email, password_hash 
-            FROM users 
-            WHERE email = ? OR username = ?
-        """,
-            (email_or_username, email_or_username),
-        )
-
-        # Check if user exists
-        if not user:
-            return None, "User not found"
-
-        # Check password
-        if not check_password_hash(user["password_hash"], password):
-            return None, "Invalid password"
-
-        # User authenticated successfully, update last login time
-        Database.execute_set(
-            """
-            UPDATE users 
-            SET last_login = CURRENT_TIMESTAMP 
-            WHERE user_id = ?
-        """,
-            (user["user_id"],),
-        )
-
-        return user, "Authenticated successfully"
-
-    @staticmethod
-    def get_user_by_id(user_id) -> dict[str, Any] | None:
-        """Get user by ID"""
-        result = Database.execute_select_one(
-            """
-            SELECT user_id, username, email, created_at, last_login, is_active
-            FROM users 
-            WHERE user_id = ?
-        """,
-            (user_id,),
-        )
-
-        return result
+# #####################################################################
+# region REGISTER
 
 
-# region register
+@auth_bp.route("/register", methods=["GET"])
+def register_page():
+    """Display registration form"""
+    return render_template("register.html")
 
 
-@auth_bp.route("/register", methods=["GET", "POST"])
-def register():
-    if request.method == "GET":
-        return render_template("register.html")
-
+@auth_bp.route("/register", methods=["POST"])
+def register_submit():
+    """Process registration form submission"""
     username = request.form.get("username")
     if username is None:
         raise ValueError("username field is missing")
@@ -147,7 +65,7 @@ def register():
 
     if success:
         flash("Registration successful! Please login.", "success")
-        return redirect(url_for("auth.login"))
+        return redirect(url_for("auth.login_page"))
     else:
         flash(result, "error")
         return render_template("register.html", username=username, email=email)
@@ -157,31 +75,48 @@ def register():
 # #####################################################################
 
 # #####################################################################
-# region login
+# region LOGIN
 
 
-@auth_bp.route("/login", methods=["GET", "POST"])
-def login():
-    if request.method == "GET":
-        return render_template("login.html")
+@auth_bp.route("/login", methods=["GET"])
+def login_page():
+    """Display login form"""
+    return render_template("login.html")
 
-    email_or_username = request.form.get("email_or_username", "").strip()
+
+@auth_bp.route("/login", methods=["POST"])
+def login_submit():
+    """Process login form submission"""
+    email_or_username = request.form.get("email_or_username")
+    if email_or_username is None:
+        raise ValueError("email_or_username field is missing")
+
     password = request.form.get("password")
-    remember_me = request.form.get("remember_me") == "on"
+    if password is None:
+        raise ValueError("password field is missing")
 
-    user, error_message = UserAuth.authenticate_user(email_or_username, password)
+    remember_me_value = request.form.get("remember_me")
+    if remember_me_value is None:
+        raise ValueError("remember_me field is missing")
 
-    if user:
-        session["user_id"] = user["user_id"]
-        session["username"] = user["username"]
+    email_or_username.strip()
+    remember_me = remember_me_value == "on"
 
-        if remember_me:
-            session.permanent = True
-            from flask import current_app
+    user_data, error_message = UserAuth.authenticate_user(email_or_username, password)
 
-            current_app.permanent_session_lifetime = timedelta(days=30)
-
-        flash(f"Welcome back, {user['username']}!", "success")
+    if user_data:
+        # Create Flask-Login user object
+        user = User(
+            id=user_data["user_id"],
+            username=user_data["username"],
+            email=user_data["email"],
+        )
+        login_user(
+            user=user,
+            remember=remember_me,
+            duration=timedelta(days=30),
+        )
+        flash(f"Welcome back, {user.username}!", "success")
         next_page = request.args.get("next")
         return redirect(next_page or url_for("index"))
     else:
@@ -193,29 +128,33 @@ def login():
 # #####################################################################
 
 # #####################################################################
-# region profile
+# region LOGOUT
 
 
-@auth_bp.route("/profile")
-def profile():
-    if "user_id" not in session:
-        flash("Please login to view your profile", "warning")
-        return redirect(url_for("auth.login"))
-
-    user = UserAuth.get_user_by_id(session["user_id"])
-
-    if not user:
-        flash("User not found", "error")
-        return redirect(url_for("auth.login"))
-
-    return render_template("profile.html", user=user)
+@auth_bp.route("/logout")
+def logout():
+    logout_user()
+    flash("You have been logged out", "info")
+    return redirect(url_for("index"))
 
 
 # endregion
 # #####################################################################
 
 # #####################################################################
-# region settings
+# region PROFILE
+
+
+@auth_bp.route("/profile")
+def profile():
+    return render_template("profile.html")
+
+
+# endregion
+# #####################################################################
+
+# #####################################################################
+# region SETTINGS
 
 
 @auth_bp.route("/settings")
@@ -227,21 +166,7 @@ def settings():
 # #####################################################################
 
 # #####################################################################
-# region logout
-
-
-@auth_bp.route("/logout")
-def logout():
-    session.clear()
-    flash("You have been logged out", "info")
-    return redirect(url_for("index"))
-
-
-# endregion
-# #####################################################################
-
-# #####################################################################
-# region create_session
+# region CREATE SESSION
 
 
 # Optional: Add session management
@@ -269,7 +194,7 @@ def create_session():
 # #####################################################################
 
 # #####################################################################
-# region validate_session
+# region VALIDATE SESSION
 
 
 @auth_bp.route("/validate_session", methods=["POST"])
