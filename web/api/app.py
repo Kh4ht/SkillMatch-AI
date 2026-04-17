@@ -8,6 +8,7 @@ from extractors import (
 from database import Database
 from candidate import Candidate
 
+
 # Get the directory where this script is located
 script_dir = os.path.dirname(os.path.abspath(__file__))
 # Go up one level to project root (from web/api/ to SkillMatch-AI/)
