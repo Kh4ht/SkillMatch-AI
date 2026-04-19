@@ -1,9 +1,11 @@
 # region IMPORTS
 
 
+# Standard Library Imports
 import sqlite3
 from venv import logger
 
+# Local Imports
 from .database import Database
 from .extractors import (
     extract_name,

@@ -10,10 +10,7 @@ import os
 from models.database import Database
 from models.candidate import Candidate
 from models.user import User
-from models.extractors import (
-    extract_text_as_str,
-    EDUCATION_WORDS,
-)
+from models.extractors import extract_text_as_str
 
 # Import blueprints
 from auth import auth_bp
@@ -75,7 +72,19 @@ def load_user(user_id):
 
 @app.route("/")
 def index():
-    return render_template("index.html", EDUCATION_WORDS=EDUCATION_WORDS)
+    return render_template("index.html")
+
+
+# endregion
+# #####################################################################
+
+# #####################################################################
+# region PARSE RESUMES
+
+
+@app.route("/parse_resumes")
+def parse_resumes_page():
+    return render_template("parse_resumes.html")
 
 
 # endregion
@@ -89,18 +98,6 @@ def index():
 def results():
     candidates = Database.execute_select("SELECT * FROM candidates")
     return render_template("results.html", candidates=candidates)
-
-
-# endregion
-# #####################################################################
-
-# #####################################################################
-# region ABOUT
-
-
-@app.route("/about")
-def about():
-    return render_template("about.html")
 
 
 # endregion
@@ -176,9 +173,11 @@ def delete_candidates():
 # #####################################################################
 
 # #####################################################################
-
-
 # region RUN APP
+
+
 if __name__ == "__main__":  # to prevent unwanted execution
     app.run(debug=True)
+
+
 # endregion

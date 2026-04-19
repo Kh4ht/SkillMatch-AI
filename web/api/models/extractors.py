@@ -1,6 +1,7 @@
 # region IMPORTS
 
 
+# Standard Library Imports
 from PyPDF2 import PdfReader
 import re
 
