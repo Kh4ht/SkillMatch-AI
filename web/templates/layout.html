@@ -6,17 +6,21 @@
 
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <title>SkillMatch AI</title>
+    <!-- Link To Local CSS Scripts -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/buttons.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/containers.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/input_type_text.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/tables.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/headers.css') }}">
+
+    <!-- Link To External CSS Scripts -->
+
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 
     {% block head %}
     {% endblock head %}
-
-    <!-- Link to main stylesheet -->
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/buttons.css') }}">
-    <!-- Font Awesome for icons -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
-
 
     {% block style %}
     {% endblock style %}
@@ -37,11 +41,8 @@
             <ul class="nav-menu">
                 <li><a href="{{ url_for('index') }}" {% if request.endpoint=='index' %}class="active" {% endif
                         %}>Home</a></li>
-                <li><a href="{{ url_for('results') }}" {% if request.endpoint=='results' %}class="active" {% endif
-                        %}>Results</a></li>
-
-                <li><a href="{{ url_for('about') }}" {% if request.endpoint=='about' %}class="active" {% endif
-                        %}>About</a></li>
+                <li><a href="{{ url_for('parse_resumes_page') }}" {% if request.endpoint=='parse_resumes_page'
+                        %}class="active" {% endif %}>Parse Resumes</a></li>
             </ul>
 
             <!-- Right-side account menu -->
@@ -72,7 +73,7 @@
     </nav>
 
     <!-- Main Content -->
-    <main class="content">
+    <main class="main-container">
         {% block body %}
         {% endblock body %}
     </main>

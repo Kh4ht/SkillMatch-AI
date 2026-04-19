@@ -8,7 +8,7 @@ from datetime import datetime, timedelta
 
 # Local imports
 from models.database import Database
-from models.user_auth import UserAuth
+from models.user import User
 from models.user import User
 
 
@@ -61,7 +61,7 @@ def register_submit():
     username = username.strip()
     email = email.strip()
 
-    success, result = UserAuth.create_new_user(username, email, password)
+    success, result = User.create_new_user(username, email, password)
 
     if success:
         flash("Registration successful! Please login.", "success")
@@ -102,15 +102,10 @@ def login_submit():
     email_or_username.strip()
     remember_me = remember_me_value == "on"
 
-    user_data, error_message = UserAuth.authenticate_user(email_or_username, password)
+    user, error_message = User.authenticate_user(email_or_username, password)
 
-    if user_data:
+    if user:
         # Create Flask-Login user object
-        user = User(
-            id=user_data["user_id"],
-            username=user_data["username"],
-            email=user_data["email"],
-        )
         login_user(
             user=user,
             remember=remember_me,

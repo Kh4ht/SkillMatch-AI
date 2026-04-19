@@ -147,6 +147,31 @@ def upload():
 # #####################################################################
 
 # #####################################################################
+# region ADD JOB
+
+
+@app.route("/add_job", methods=["POST"])
+def add_new_job_submit():
+    job_title = request.form.get("job_title")
+    required_skills = request.form.get("required_skills")
+    min_education = request.form.get("min_education")
+
+    if not job_title or not required_skills or not min_education:
+        flash("All fields are required to add a job", "error")
+        return redirect("/parse_resumes")
+
+    Database.execute_set(
+        "INSERT INTO jobs (title, required_skills, min_education) VALUES (?, ?, ?)",
+        (job_title, required_skills, min_education),
+    )
+    flash(f"Job '{job_title}' added successfully!", "success")
+    return redirect("/parse_resumes")
+
+
+# endregion
+# #####################################################################
+
+# #####################################################################
 # region DELETE CANDIDATES
 
 

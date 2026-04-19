@@ -1,0 +1,81 @@
+/* This Is The Main Container For All Pages, Used In "layout.html". */
+main.main-container {
+    max-width: 1400px;
+    margin: 2rem auto;
+    padding: 0 2rem;
+}
+
+
+/* Content Container Gives A White Background To The Main Content Area. */
+div.content-container {
+    background: white;
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+
+/* Items Container For Adding Spacing Between Items Inside It. */
+div.items-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-bottom: 15px;
+    border-bottom: 2px solid #f0f0f0;
+    gap: 10px;
+}
+
+/* Grid container */
+div.grid-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 20px;
+}
+
+/* Vertical container using flexbox */
+div.vertical-container {
+    display: flex;
+    flex-direction: column;
+    /* Stacks items vertically */
+    gap: 15px;
+    /* Space between items */
+}
+
+div.item {
+    /* Shape & Design */
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 16px;
+    padding: 40px 20px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+
+    /* Text styling */
+    color: white;
+    font-size: 18px;
+    font-weight: 600;
+    text-align: center;
+
+    /* Interactive */
+    cursor: pointer;
+    transition: all 0.3s ease;
+
+    /* Center text */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    /* Ensure consistent height */
+    min-height: 100px;
+}
+
+/* Hover effect */
+.item:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+}
+
+/* Active/Selected state */
+.item.active {
+    background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+    transform: scale(1.02);
+    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.3);
+}

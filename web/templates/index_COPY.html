@@ -36,8 +36,10 @@
         margin: 4px;
         font-weight: bold;
 
-        display: inline-block; /* Ens proper spacing */
-        position: relative; /* For positioning the pseudo-element */
+        display: inline-block;
+        /* Ens proper spacing */
+        position: relative;
+        /* For positioning the pseudo-element */
     }
 
     .added-skill:hover {
@@ -48,14 +50,15 @@
 
     /* Add X on hover */
     .added-skill:hover::after {
-        content: "✕"; /* The X symbol */
+        content: "✕";
+        /* The X symbol */
         position: absolute;
-        left: 50%; /* Position from left edge */
+        left: 50%;
+        /* Position from left edge */
         top: 50%;
-        transform: translate(
-            -50%,
-            -50%
-        ); /* Center both horizontally and vertically */
+        transform: translate(-50%,
+                -50%);
+        /* Center both horizontally and vertically */
         color: rgba(255, 0, 0, 0.1);
         font-weight: bold;
         font-size: 40px;
@@ -73,12 +76,8 @@
     }
 </style>
 
-<link
-    rel="stylesheet"
-    href="{{ url_for('static', filename='css/input_type_text.css') }}" />
-<link
-    rel="stylesheet"
-    href="{{ url_for('static', filename='css/button_type_submit.css') }}" />
+<link rel="stylesheet" href="{{ url_for('static', filename='css/input_type_text.css') }}" />
+<link rel="stylesheet" href="{{ url_for('static', filename='css/button_type_submit.css') }}" />
 {% endblock style %}
 
 {% block body %}
@@ -92,12 +91,7 @@
     <!-- enctype="multipart/form-data" Is Necessary, To Take Uploaded Files As Input -->
     <form action="/upload" method="post" enctype="multipart/form-data">
         <h2>Upload Resumes</h2>
-        <input
-            type="file"
-            name="uploaded_resumes"
-            accept=".pdf"
-            multiple
-            required />
+        <input type="file" name="uploaded_resumes" accept=".pdf" multiple required />
 
         <br /><br />
 
@@ -105,21 +99,13 @@
         <p style="margin: 0; text-align: left; font-size: 14px">
             For Better Accuracy, Write A Single Word (keyword).
         </p>
-        <input
-            type="text"
-            id="skill-input"
-            placeholder="Name a Skill . . ."
-            pattern="\S+"
-            title="Spaces are not allowed. Use single words only."
-            oninvalid="
+        <input type="text" id="skill-input" placeholder="Name a Skill . . ." pattern="\S+"
+            title="Spaces are not allowed. Use single words only." oninvalid="
                 this.setCustomValidity(
                     'Please enter a single word without spaces',
                 )
-            "
-            oninput="this.setCustomValidity('')" />
-        <p
-            id="space-warning"
-            style="
+            " oninput="this.setCustomValidity('')" />
+        <p id="space-warning" style="
                 color: red;
                 display: block;
                 font-size: 12px;

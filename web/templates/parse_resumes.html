@@ -1,1 +1,740 @@
+{% extends "layout.html" %}
 
+
+<!-- All Head Elements (Title, Meta, etc) Go Here -->
+{% block head %}
+
+<title>Parse Resumes - SkillMatch AI</title>
+
+{% endblock head %}
+
+<!-- All Page-Specific CSS Styles Go Here -->
+{% block style %}
+
+<style>
+    /* Define specific widths for each column */
+    .candidates-table th:nth-child(1),
+    .candidates-table td:nth-child(1) {
+        width: 10px;
+    }
+
+    /* Select column */
+    .candidates-table th:nth-child(2),
+    .candidates-table td:nth-child(2) {
+        width: 150px;
+    }
+
+    /* Name */
+    .candidates-table th:nth-child(3),
+    .candidates-table td:nth-child(3) {
+        width: 220px;
+    }
+
+    /* Email */
+    .candidates-table th:nth-child(4),
+    .candidates-table td:nth-child(4) {
+        width: 150px;
+    }
+
+    /* Phone */
+    .candidates-table th:nth-child(5),
+    .candidates-table td:nth-child(5) {
+        width: 150px;
+    }
+
+    /* Resume filename */
+    .candidates-table th:nth-child(6),
+    .candidates-table td:nth-child(6) {
+        width: 150px;
+    }
+
+    /* Education */
+    .candidates-table th:nth-child(7),
+    .candidates-table td:nth-child(7) {
+        width: 150px;
+    }
+
+    /* Skills */
+    .candidates-table th:nth-child(8),
+    .candidates-table td:nth-child(8) {
+        width: 80px;
+    }
+
+
+
+
+
+
+
+
+
+
+    /* Candidates Table Section */
+    .candidates-table-container {
+        overflow-x: auto;
+    }
+
+
+
+
+    .candidates-table th {
+
+        user-select: none;
+    }
+
+    .match-score {
+        display: inline-block;
+        padding: 4px 8px;
+        border-radius: 20px;
+        font-weight: bold;
+        font-size: 12px;
+    }
+
+    .view-resume-btn {
+        background: #6c757d;
+        color: white;
+        border: none;
+        padding: 5px 10px;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 12px;
+    }
+
+    .view-resume-btn:hover {
+        background: #5a6268;
+    }
+
+    /* Modal */
+    .modal {
+        display: none;
+        position: fixed;
+        z-index: 1000;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.5);
+    }
+
+    .modal-content {
+        background-color: white;
+        margin: 5% auto;
+        padding: 20px;
+        border-radius: 8px;
+        width: 80%;
+        max-width: 600px;
+        max-height: 80%;
+        overflow-y: auto;
+    }
+
+    .close {
+        font-size: 28px;
+        font-weight: bold;
+        cursor: pointer;
+        color: #aaa;
+    }
+
+    .close:hover {
+        color: #000;
+    }
+
+    .form-group {
+        margin-bottom: 15px;
+    }
+
+    .form-group label {
+        display: block;
+        margin-bottom: 5px;
+        font-weight: 600;
+        color: #555;
+    }
+
+    .form-group input,
+    .form-group textarea {
+        width: 100%;
+        padding: 8px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+    }
+
+    .form-group textarea {
+        resize: vertical;
+        min-height: 100px;
+    }
+
+    .loading {
+        text-align: center;
+        padding: 40px;
+        color: #666;
+    }
+</style>
+
+{% endblock style %}
+
+<!-- All Page Content Goes Here -->
+{% block body %}
+
+<!-- Jobs Section -->
+<div class="content-container" style="margin-bottom: 30px;">
+
+    <div class="items-container" style="margin-bottom: 30px;">
+        <h2>
+            <i class="fa-solid fa-briefcase"></i> Jobs
+        </h2>
+        <button onclick="showAddJobModal()">
+            <i class="fa-solid fa-plus"></i> Add New Job
+        </button>
+    </div>
+
+    <div class="grid-container">
+        <!-- Jobs will be loaded here dynamically -->
+        <div class="item">
+            item 1 item 1i
+        </div>
+        <div class="item">
+            item 2
+        </div>
+        <div class="item">
+            item 3
+        </div>
+        <div class="item">
+            item 4
+        </div>
+        <div class="item">
+            item 5
+        </div>
+        <div class="item">
+            item 6
+        </div>
+    </div>
+
+</div>
+
+
+<!-- Candidates Table Section -->
+<div class="content-container" style="height: 1000px;">
+
+    <!-- Job Requirements Section -->
+    <div class="vertical-container" style="margin-bottom: 30px;">
+        <div class="items-container">
+            <h3>
+                <i class="fa-solid fa-circle-info"></i> Job Requirements
+            </h3>
+            <button class="blue">
+                <i class="fa-solid fa-pen-to-square"></i> Edit Job Requirements
+            </button>
+        </div>
+        <span id="job_requirements" name="job_requirements">
+            example <br>
+            <strong>Required Skills:</strong> Python, Machine Learning, SQL<br>
+            <strong>Experience:</strong> 3+ years<br>
+            <strong>Education:</strong> Bachelor's in Computer Science
+        </span>
+    </div>
+
+    <!-- Add Candidates Section -->
+    <div class="items-container" style="margin-bottom: 30px;">
+        <h3>
+            <i class="fa-solid fa-people-group"></i> Candidates Table
+        </h3>
+        <input type="file" id="resumeUpload" style="display: none;" accept=".pdf" multiple>
+        <button class="blue">
+            <i class="fa-solid fa-plus"></i> Add Candidates
+        </button>
+    </div>
+
+    <!-- Search Section -->
+    <div class="items-container" style="margin-bottom: 30px;">
+        <i class="fa-solid fa-magnifying-glass"></i>
+        <input type="text" id="search_txt_input" placeholder="Search Table . . ." />
+        <button type="button" title="Clear Search Input" id="clear_search_btn" disabled>
+            Clear
+        </button>
+    </div>
+
+    <!-- Table Section -->
+    <div class="candidates-table-container">
+        <table id="candidatesTable">
+            <thead>
+                <tr>
+                    <th onclick="sortTable('name')">Name ⬍</th>
+                    <th onclick="sortTable('email')">Email ⬍</th>
+                    <th onclick="sortTable('skills')">Skills ⬍</th>
+                    <th onclick="sortTable('experience')">Experience ⬍</th>
+                    <th onclick="sortTable('matchScore')">Match Score ⬍</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody id="candidatesTableBody">
+                <tr>
+                    <td colspan="6" class="no-data">Select a job to view candidates</td>
+                </tr>
+                <tr>
+                    <td class="no-data">Selecasdfasdfasdfasfdt</td>
+                    <td class="no-data">Select</td>
+                    <td class="no-data">Select</td>
+                    <td class="no-data">Select</td>
+                    <td class="no-data">Select</td>
+                    <td class="no-data">Select</td>
+                </tr>
+                <tr>
+                    <td class="no-data">Select</td>
+                    <td class="no-data">Select</td>
+                    <td class="no-data">Select</td>
+                    <td class="no-data">Select</td>
+                    <td class="no-data">Select</td>
+                    <td class="no-data">Select</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div>
+        <table class="candidates-table">
+            <thead>
+                <tr>
+                    <th class="checkbox-col"><i class="fa-solid fa-circle-check"></i></th>
+                    <th>Name</th>
+                    <th>Email</th>
+                    <th>Phone</th>
+                    <th>View Resume</th>
+                    <th>Education</th>
+                    <th>Skills</th>
+                    <th>Match <i class="fa-solid fa-percent"></i></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in candidates %}
+                <tr>
+                    <td class="checkbox-col">
+                        <input type="checkbox" name="selected_candidates" value="{{ item['id'] }}"
+                            onchange="updateDeleteButton()" />
+                    </td>
+                    <td>{{ item["name"] }}</td>
+                    <td>{{ item["email"] }}</td>
+                    <td>{{ item["phone"] }}</td>
+                    <td>{{ item["resume_filename"] }}</td>
+                    <td>{{ item["education"] }}</td>
+                    <td>
+                        {% for s in item["skills"].split(" | ") %} {{ s +
+                        ","}}<br />
+                        {% endfor %}
+                    </td>
+                    <td class="match-score">{{ item["match_score"] }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+</div>
+
+<!-- Add Job Modal -->
+<div id="addJobModal" class="modal">
+    <div class="modal-content">
+
+        <div class="items-container" style="margin-bottom: 50px;">
+            <h3>Add New Job</h3>
+            <span class="close" onclick="closeModal()">
+                <i class="fa-regular fa-circle-xmark"></i>
+            </span>
+        </div>
+
+        <form id="addJobForm">
+            <div class="form-group">
+                <label>Job Title *</label>
+                <input type="text" id="jobTitle" required>
+            </div>
+            <div class="form-group">
+                <label>Required Skills (comma-separated) *</label>
+                <textarea id="jobSkills" placeholder="e.g., Python, JavaScript, Machine Learning, SQL"
+                    required></textarea>
+            </div>
+            <div class="form-group">
+                <label>Required Experience (years) *</label>
+                <input type="number" id="jobExperience" required>
+            </div>
+            <div class="form-group">
+                <label>Required Education *</label>
+                <input type="text" id="jobEducation" placeholder="e.g., Bachelor's in Computer Science">
+            </div>
+            <button type="submit" style="width: 100%;">Add Job</button>
+        </form>
+
+    </div>
+</div>
+
+{% endblock body %}
+
+<!-- All Page-Specific JS Scripts Go Here -->
+{% block script %}
+
+<script src="{{ url_for('static', filename='js/utils.js') }}"></script>
+
+<script>
+    const clearSearchInputBtn = document.getElementById('clear_search_btn');
+    const searchInput = document.getElementById('search_txt_input');
+
+    // Search functionality
+    function searchTable() {
+        const searchTerm = searchInput.value.toLowerCase().trim();
+        const table = document.querySelector('table');
+        const tbody = table.querySelector('tbody');
+        const rows = tbody.querySelectorAll('tr');
+
+        let hasMatches = false;
+
+        rows.forEach((row) => {
+            // Skip the "no results" row
+            if (row.id === 'noResultsRow') return;
+
+            // Get all text content from the row (excluding the checkbox column)
+            const cells = row.querySelectorAll('td:not(.checkbox-col)');
+            let rowText = '';
+
+            cells.forEach((cell) => {
+                rowText += cell.textContent.toLowerCase() + ' ';
+            });
+
+            // Check if search term matches any content in the row
+            if (searchTerm === '' || rowText.includes(searchTerm)) {
+                row.style.display = ''; // Show row
+                hasMatches = true;
+            } else {
+                row.style.display = 'none'; // Hide row
+            }
+        });
+
+        // Update clear button disabled state
+        clearSearchInputBtn.disabled = searchTerm === '';
+
+        // Optional: Show "no results" message
+        showNoResultsMessage(!hasMatches && searchTerm !== '');
+    }
+
+    function showNoResultsMessage(show) {
+        const table = document.querySelector('table');
+        let noResultsRow = document.getElementById('noResultsRow');
+
+        if (show) {
+            if (!noResultsRow) {
+                noResultsRow = document.createElement('tr');
+                noResultsRow.id = 'noResultsRow';
+                const colspan = document.querySelectorAll('thead th').length;
+                noResultsRow.innerHTML =
+                    `<td colspan="${colspan}" style="text-align: center; padding: 40px;">
+                        No matching candidates found
+                    </td>`;
+                table.querySelector('tbody').appendChild(noResultsRow);
+            } else {
+                noResultsRow.style.display = '';
+            }
+        } else if (noResultsRow) {
+            noResultsRow.style.display = 'none';
+        }
+    }
+
+    function clearSearchInput() {
+        searchInput.value = '';
+        searchTable();
+        searchInput.focus();
+    }
+
+    function clamp(value, min, max) {
+        return Math.min(Math.max(value, min), max);
+    }
+
+    function setMatchScoreColors() {
+        const scoreCells = document.querySelectorAll('.match-score');
+        scoreCells.forEach((cell) => {
+            const score = parseFloat(cell.textContent);
+
+            if (!isNaN(score)) {
+                const ratio = Math.min(100, Math.max(0, score)) / 100;
+
+                const red = Math.floor(255 * (1 - ratio));
+                const green = Math.floor(255 * ratio);
+
+                cell.style.color = `rgb(${red}, ${green}, 0)`;
+            }
+        });
+    }
+    function setMatchScoreColors2() {
+        const scoreCells = document.querySelectorAll('.match-score');
+        scoreCells.forEach((cell) => {
+            const score = parseFloat(cell.textContent);
+
+            if (!isNaN(score)) {
+                const ratio = Math.min(100, Math.max(0, score)) / 100;
+
+                const red = Math.floor(255 * clamp(1 - ratio, 0, 0.45) * 2); // 0.5 to 1 maps to 255-0 red and 0 to 0.5 maps to 255 red
+
+                const green = Math.floor(255 * clamp(ratio, 0, 0.45) * 2); // 0 to 0.5 maps to 0-255 green and 0.5 to 1 maps to 255 green
+
+                cell.style.color = `rgb(${red}, ${green}, 0)`;
+            }
+        });
+    }
+
+    // Add event listeners when page loads
+    document.addEventListener('DOMContentLoaded', function () {
+        // Search as you type
+        searchInput.addEventListener('input', searchTable);
+
+        // Clear button handler
+        if (clearSearchInputBtn) {
+            clearSearchInputBtn.addEventListener('click', clearSearchInput);
+        }
+
+        // Call searchTable on load to set initial button state
+        searchTable();
+
+        setMatchScoreColors2();
+    });
+
+    function toggleAll(source) {
+        const checkboxes = document.querySelectorAll(
+            'input[name="selected_candidates"]',
+        );
+        checkboxes.forEach((checkbox) => (checkbox.checked = source.checked));
+        updateDeleteButton();
+    }
+
+    function updateDeleteButton() {
+        const checkboxes = document.querySelectorAll(
+            'input[name="selected_candidates"]:checked',
+        );
+        const deleteBtn = document.getElementById('deleteSelected');
+        deleteBtn.disabled = checkboxes.length === 0;
+    }
+
+    function deleteSelectedRows() {
+        if (
+            confirm('Are you sure you want to delete the selected candidates?')
+        ) {
+            document.getElementById('deleteForm').submit();
+        }
+    }
+</script>
+
+
+
+<script>
+    let currentJobId = null;
+    let currentCandidates = [];
+    let sortDirection = {};
+
+    // Load jobs on page load
+    document.addEventListener('DOMContentLoaded', function () {
+
+        // Handle resume upload
+        document.getElementById('resumeUpload').addEventListener('change', handleResumeUpload);
+
+        // Handle add job form submission
+        document.getElementById('addJobForm').addEventListener('submit', addNewJob);
+    });
+
+    // Select a job
+    async function selectJob(jobId) {
+        currentJobId = jobId;
+
+        // Update active state in UI
+        document.querySelectorAll('.job-card').forEach(card => {
+            card.classList.remove('active');
+        });
+        event.currentTarget.classList.add('active');
+
+        // Update selected job title
+        const jobTitle = event.currentTarget.querySelector('.job-title').innerText;
+        document.getElementById('selectedJobTitle').innerText = jobTitle;
+
+        // Load candidates for this job
+        await loadCandidates(jobId);
+    }
+
+    // Load candidates for selected job
+    async function loadCandidates(jobId) {
+        try {
+            const response = await fetch(`/api/jobs/${jobId}/candidates`);
+            const candidates = await response.json();
+            currentCandidates = candidates;
+            displayCandidates(candidates);
+        } catch (error) {
+            console.error('Error loading candidates:', error);
+            document.getElementById('candidatesTableBody').innerHTML =
+                '<tr><td colspan="6" class="no-data">Error loading candidates</td></tr>';
+        }
+    }
+
+    // Display candidates in table
+    function displayCandidates(candidates) {
+        const tbody = document.getElementById('candidatesTableBody');
+
+        if (!candidates || candidates.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="6" class="no-data">No candidates found. Upload resumes to see matches.</td></tr>';
+            return;
+        }
+
+        tbody.innerHTML = candidates.map(candidate => {
+            let scoreClass = 'score-low';
+            if (candidate.match_score >= 70) scoreClass = 'score-high';
+            else if (candidate.match_score >= 40) scoreClass = 'score-medium';
+
+            return `
+                <tr>
+                    <td>${escapeHtml(candidate.name)}</td>
+                    <td>${escapeHtml(candidate.email)}</td>
+                    <td>${candidate.skills.map(s => `<span class="skill-tag">${escapeHtml(s)}</span>`).join(' ')}</td>
+                    <td>${candidate.experience} years</td>
+                    <td><span class="match-score ${scoreClass}">${candidate.match_score}%</span></td>
+                    <td><button class="view-resume-btn" onclick="viewResume('${candidate.id}')">View Resume</button></td>
+                </tr>
+            `;
+        }).join('');
+    }
+
+    // Handle resume upload
+    async function handleResumeUpload(event) {
+        const files = event.target.files;
+
+        if (!currentJobId) {
+            alert('Please select a job first');
+            return;
+        }
+
+        if (files.length === 0) return;
+
+        const formData = new FormData();
+        for (let file of files) {
+            formData.append('resumes', file);
+        }
+        formData.append('job_id', currentJobId);
+
+        // Show loading state
+        document.getElementById('candidatesTableBody').innerHTML =
+            '<tr><td colspan="6" class="loading">Processing resumes...</td></tr>';
+
+        try {
+            const response = await fetch('/api/upload_resumes', {
+                method: 'POST',
+                body: formData
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                // Reload candidates
+                await loadCandidates(currentJobId);
+                // Reload jobs to update candidate counts
+                await loadJobs();
+                alert(`Successfully processed ${result.processed} resumes`);
+            } else {
+                alert('Error processing resumes: ' + result.error);
+            }
+        } catch (error) {
+            console.error('Error uploading resumes:', error);
+            alert('Error uploading resumes');
+        }
+
+        // Clear file input
+        event.target.value = '';
+    }
+
+    // Add new job
+    async function addNewJob(event) {
+        event.preventDefault();
+
+        const jobData = {
+            title: document.getElementById('jobTitle').value,
+            skills: document.getElementById('jobSkills').value.split(',').map(s => s.trim()),
+            experience_years: parseInt(document.getElementById('jobExperience').value),
+            education: document.getElementById('jobEducation').value
+        };
+
+        try {
+            const response = await fetch('/api/jobs', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(jobData)
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                closeModal();
+                document.getElementById('addJobForm').reset();
+                await loadJobs();
+                alert('Job added successfully');
+            } else {
+                alert('Error adding job: ' + result.error);
+            }
+        } catch (error) {
+            console.error('Error adding job:', error);
+            alert('Error adding job');
+        }
+    }
+
+    // View resume
+    function viewResume(candidateId) {
+        // Implement resume viewing logic
+        window.open(`/api/resumes/${candidateId}`, '_blank');
+    }
+
+    // Sort table
+    function sortTable(column) {
+        if (!sortDirection[column]) {
+            sortDirection[column] = 'asc';
+        } else {
+            sortDirection[column] = sortDirection[column] === 'asc' ? 'desc' : 'asc';
+        }
+
+        const sortedCandidates = [...currentCandidates].sort((a, b) => {
+            let aVal = a[column];
+            let bVal = b[column];
+
+            if (column === 'matchScore') {
+                aVal = a.match_score;
+                bVal = b.match_score;
+            } else if (column === 'skills') {
+                aVal = a.skills.length;
+                bVal = b.skills.length;
+            }
+
+            if (sortDirection[column] === 'asc') {
+                return aVal > bVal ? 1 : -1;
+            } else {
+                return aVal < bVal ? 1 : -1;
+            }
+        });
+
+        displayCandidates(sortedCandidates);
+    }
+
+    // Modal functions
+    function showAddJobModal() {
+        document.getElementById('addJobModal').style.display = 'block';
+    }
+
+    function closeModal() {
+        document.getElementById('addJobModal').style.display = 'none';
+    }
+
+    // Close modal when clicking outside
+    window.onclick = function (event) {
+        const modal = document.getElementById('addJobModal');
+        if (event.target === modal) {
+            closeModal();
+        }
+    }
+
+    // Helper function to escape HTML
+    function escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+</script>
+
+{% endblock script %}
