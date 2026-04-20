@@ -1,8 +1,27 @@
+# region IMPORTS
+
+
+# Standard Library Imports
 import sqlite3
 from venv import logger
 
-from database import Database
-from extractors import *
+# Local Imports
+from .database import Database
+from .extractors import (
+    extract_name,
+    extract_email,
+    extract_phone,
+    extract_education,
+    EDUCATION_WORDS,
+    extract_skills,
+)
+
+
+# endregion
+# #####################################################################
+
+# #####################################################################
+# region Candidate Class
 
 
 class Candidate:
@@ -26,7 +45,7 @@ class Candidate:
 
     def add_to_database(self):
         try:
-            Database.execute(
+            Database.execute_set(
                 """INSERT INTO candidates (name, email, phone, resume_filename, match_score, education, skills) 
                    VALUES (?, ?, ?, ?, ?, ?, ?)""",
                 (
@@ -73,3 +92,6 @@ class Candidate:
             match_score=calculate_match_score(),
             skills=found_skills,
         )
+
+
+# endregion

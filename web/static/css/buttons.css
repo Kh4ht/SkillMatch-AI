@@ -1,0 +1,50 @@
+button {
+    /* Default values (green) */
+    --btn-color-start: #4CAF50;
+    --btn-color-end: #208223;
+    --btn-border-color: #4CAF50;
+
+    width: auto;
+    color: white;
+    cursor: pointer;
+    background: linear-gradient(135deg, var(--btn-color-start) 0%, var(--btn-color-end) 100%);
+    transition: 0.2s ease;
+    padding: 10px 20px;
+    box-shadow: 0px 2px 8px rgba(0, 0, 0, 0.1);
+    font-weight: bold;
+    font-size: 14px;
+    border-radius: 10px;
+    border-color: var(--btn-color-start);
+
+    display: block;
+}
+
+button:enabled:hover {
+    transform: translateY(-1px);
+    background: linear-gradient(135deg, var(--btn-color-start) 0%, var(--btn-color-end) 90%);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+    transition: 0.3s ease;
+}
+
+button:disabled {
+    background: #a2a2a2;
+    cursor: not-allowed;
+    border-color: #a2a2a2;
+}
+
+
+
+
+/* Blue button variation */
+button.blue {
+    --btn-color-start: #2196F3;
+    --btn-color-end: #036bc1;
+    --btn-border-color: #2196F3;
+}
+
+/* Red button variation */
+button.red {
+    --btn-color-start: #f44336;
+    --btn-color-end: #b81c1c;
+    --btn-border-color: #f44336;
+}

@@ -3,7 +3,7 @@ input[type="text"] {
     width: 100%;
     padding: 6px 8px;
     margin: 2px;
-    border: 2px solid #ddd;
+    border: 1px solid #ddd;
     border-radius: 8px;
     font-size: 16px;
     font-family: inherit;
@@ -11,7 +11,7 @@ input[type="text"] {
     /* Background & text */
     background-color: #f9f9f9;
     color: #333;
-    
+
     /* Remove default outline */
     outline: none;
 
@@ -22,7 +22,8 @@ input[type="text"] {
 input[type="text"]::placeholder {
     color: #999;
     font-style: italic;
-    opacity: 1; /* Firefox fixes lower opacity */
+    opacity: 1;
+    /* Firefox fixes lower opacity */
 }
 
 input[type="text"]:focus {
@@ -30,7 +31,7 @@ input[type="text"]:focus {
     border-right-color: #005ec2;
     border-bottom-color: #005ec2;
     background-color: #fff;
-    box-shadow: 0 0 0 3px rgba(0,123,255,0.1);
+    box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
 }
 
 input[type="text"]:focus::placeholder {

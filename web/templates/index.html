@@ -1,148 +1,264 @@
-{% extends "layout.html" %} {% block title %}Home - SkillMatch AI{% endblock
-title %} {% block style %}
+{% extends "layout.html" %}
+
+
+<!-- All Head Elements (Title, Meta, etc) Go Here -->
+{% block head %}
+
+<title>SkillMatch AI</title>
+
+{% endblock head %}
+
+<!-- All Page-Specific CSS Styles Go Here -->
+{% block style %}
+
 <style>
-    .upload-form {
-        background: white;
-        padding: 2rem;
-        border-radius: 8px;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-        max-width: 500px;
+    .about-wrap {
+        max-width: 640px;
         margin: 0 auto;
     }
 
-    h1 {
+    .about-hero {
         text-align: center;
-        padding: 15px;
+        padding: 36px 0 28px;
     }
 
-    h2 {
+    .about-hero h1 {
+        font-size: 26px;
+        font-weight: 500;
+        letter-spacing: -0.03em;
+        margin-bottom: 8px;
+    }
+
+    .about-hero p {
+        font-size: 15px;
+        color: var(--text-2);
+    }
+
+    .about-card {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: var(--r-lg);
+        padding: 22px 26px;
+        margin-bottom: 14px;
+    }
+
+    .about-card h2 {
+        font-size: 13px;
+        font-weight: 500;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: var(--text-3);
+        margin-bottom: 14px;
+    }
+
+    .about-card p {
+        font-size: 14px;
+        color: var(--text-2);
+        line-height: 1.75;
+    }
+
+    .how-steps {
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
+    }
+
+    .how-step {
+        display: flex;
+        gap: 14px;
+        align-items: flex-start;
+    }
+
+    .how-num {
+        width: 26px;
+        height: 26px;
+        border-radius: 50%;
+        background: var(--accent-bg);
+        color: var(--accent-text);
+        font-size: 13px;
+        font-weight: 500;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        margin-top: 1px;
+    }
+
+    .how-title {
+        font-size: 14px;
+        font-weight: 500;
+        color: var(--text);
+        margin-bottom: 2px;
+    }
+
+    .how-desc {
+        font-size: 13px;
+        color: var(--text-2);
+        line-height: 1.5;
+    }
+
+    .tech-tags {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 7px;
+    }
+
+    .tech-tag {
+        padding: 5px 13px;
+        background: var(--accent-bg);
+        color: var(--accent-text);
+        border-radius: 20px;
+        font-size: 13px;
+        font-weight: 500;
+    }
+
+    .team-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 10px;
+    }
+
+    .team-member {
+        background: var(--surface-2);
+        border-radius: var(--r-md);
+        padding: 16px 12px;
         text-align: center;
-        margin: 10px;
     }
 
-    p {
-        text-align: center;
-        margin: 20px;
+    .team-avatar {
+        width: 38px;
+        height: 38px;
+        border-radius: 50%;
+        background: var(--accent-bg);
+        color: var(--accent-text);
+        font-size: 13px;
+        font-weight: 500;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 8px;
     }
 
-    .added-skill {
-        background-color: transparent;
-        border-radius: 9999px;
-        border-color: #006ee4;
-        padding: 10px;
-        margin: 4px;
-        font-weight: bold;
-
-        display: inline-block; /* Ens proper spacing */
-        position: relative; /* For positioning the pseudo-element */
+    .team-name {
+        font-size: 13px;
+        font-weight: 500;
+        color: var(--text);
+        line-height: 1.4;
     }
 
-    .added-skill:hover {
-        color: rgb(72, 0, 0);
-        border-color: red;
-        transition: 0.3s ease;
+    .team-id {
+        font-size: 11px;
+        color: var(--text-3);
+        font-family: 'DM Mono', monospace;
+        margin-top: 3px;
     }
 
-    /* Add X on hover */
-    .added-skill:hover::after {
-        content: "✕"; /* The X symbol */
-        position: absolute;
-        left: 50%; /* Position from left edge */
-        top: 50%;
-        transform: translate(
-            -50%,
-            -50%
-        ); /* Center both horizontally and vertically */
-        color: rgba(255, 0, 0, 0.1);
-        font-weight: bold;
-        font-size: 40px;
-    }
-
-    select {
-        width: 100%;
-        padding: 6px;
-        font-size: 16px;
-        margin: 2px;
-        appearance: none;
-        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-        cursor: pointer;
-        border-radius: 10px;
+    @media (max-width: 480px) {
+        .team-grid {
+            grid-template-columns: 1fr;
+        }
     }
 </style>
 
-<link
-    rel="stylesheet"
-    href="{{ url_for('static', filename='css/input_type_text.css') }}" />
-<link
-    rel="stylesheet"
-    href="{{ url_for('static', filename='css/button_type_submit.css') }}" />
+{% endblock style %}
 
-{% endblock style %} {% block body %}
+<!-- All Page Content Goes Here -->
+{% block body %}
 
-<div class="hero">
-    <h1>Welcome To SkillMatch AI</h1>
-    <p>Upload resumes and find the best candidates !</p>
-</div>
+<div class="about-wrap">
 
-<div class="upload-form">
-    <!-- enctype="multipart/form-data" Is Necessary, To Take Uploaded Files As Input -->
-    <form action="/upload" method="post" enctype="multipart/form-data">
-        <h2>Upload Resumes</h2>
-        <input
-            type="file"
-            name="uploaded_resumes"
-            accept=".pdf"
-            multiple
-            required />
+    <div class="about-hero">
+        <h1>About SkillMatch AI</h1>
+        <p>An intelligent resume ranking system built for HR professionals</p>
+    </div>
 
-        <br /><br />
-
-        <h2>Add Required Skills</h2>
-        <p style="margin: 0; text-align: left; font-size: 14px">
-            For Better Accuracy, Write A Single Word (keyword).
+    <div class="about-card">
+        <h2>What is SkillMatch AI?</h2>
+        <p>
+            SkillMatch AI is a web application that helps HR professionals find the right candidates faster.
+            It extracts text from uploaded resumes, analyzes skills and education, then ranks candidates
+            based on how well they match the job requirements — saving hours of manual screening.
         </p>
-        <input
-            type="text"
-            id="skill-input"
-            placeholder="Name a Skill . . ."
-            pattern="\S+"
-            title="Spaces are not allowed. Use single words only."
-            oninvalid="
-                this.setCustomValidity(
-                    'Please enter a single word without spaces',
-                )
-            "
-            oninput="this.setCustomValidity('')" />
-        <p
-            id="space-warning"
-            style="
-                color: red;
-                display: block;
-                font-size: 12px;
-                margin: 0;
-                text-align: left;
-            "></p>
-        <div id="skills-container"></div>
+    </div>
 
-        <input type="hidden" name="skills" id="skills-hidden" />
+    <div class="about-card">
+        <h2>How it works</h2>
+        <div class="how-steps">
+            <div class="how-step">
+                <div class="how-num">1</div>
+                <div>
+                    <div class="how-title">Upload resumes</div>
+                    <div class="how-desc">Upload PDF files for all candidates at once</div>
+                </div>
+            </div>
+            <div class="how-step">
+                <div class="how-num">2</div>
+                <div>
+                    <div class="how-title">Set requirements</div>
+                    <div class="how-desc">Enter required skills and minimum education level</div>
+                </div>
+            </div>
+            <div class="how-step">
+                <div class="how-num">3</div>
+                <div>
+                    <div class="how-title">AI analysis</div>
+                    <div class="how-desc">The system extracts name, email, phone, education, and skills from each resume
+                    </div>
+                </div>
+            </div>
+            <div class="how-step">
+                <div class="how-num">4</div>
+                <div>
+                    <div class="how-title">Ranked results</div>
+                    <div class="how-desc">Candidates are scored and sorted by match percentage</div>
+                </div>
+            </div>
+        </div>
+    </div>
 
-        <br />
-        <br />
+    <div class="about-card">
+        <h2>Built with</h2>
+        <div class="tech-tags">
+            <span class="tech-tag">Python</span>
+            <span class="tech-tag">Flask</span>
+            <span class="tech-tag">SQLite</span>
+            <span class="tech-tag">PyPDF2</span>
+            <span class="tech-tag">pdfplumber</span>
+            <span class="tech-tag">HTML / CSS</span>
+            <span class="tech-tag">JavaScript</span>
+        </div>
+    </div>
 
-        <h2>Minimum Education</h2>
-        <select name="min_education" id="">
-            {% for word in EDUCATION_WORDS %}
-            <option value="{{ word.lower() }}">{{ word }}</option>
-            {% endfor %}
-        </select>
+    <div class="about-card">
+        <h2>The team</h2>
+        <div class="team-grid">
+            <div class="team-member">
+                <div class="team-avatar">خت</div>
+                <div class="team-name">خالد حسان التميمي</div>
+                <div class="team-id">2022901028</div>
+            </div>
+            <div class="team-member">
+                <div class="team-avatar">يك</div>
+                <div class="team-name">يزيد موفق كنعان</div>
+                <div class="team-id">2022901091</div>
+            </div>
+            <div class="team-member">
+                <div class="team-avatar">عج</div>
+                <div class="team-name">عمر خالد جرادات</div>
+                <div class="team-id">2022901051</div>
+            </div>
+        </div>
+    </div>
 
-        <br /><br />
+    <div class="about-card">
+        <h2>Course</h2>
+        <p>CS 499B — Senior Capstone Project ·</p>
+    </div>
 
-        <!-- submit -->
-        <button type="submit">Analyze Resumes</button>
-    </form>
 </div>
 
-<script src="{{ url_for('static', filename='js/skills.js') }}"></script>
+{% endblock body %}
 
-{% endblock %}
+<!-- All Page-Specific JS Scripts Go Here -->
+{% block script %}
+{% endblock script %}

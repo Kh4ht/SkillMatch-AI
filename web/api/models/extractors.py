@@ -1,25 +1,16 @@
+# region IMPORTS
+
+
+# Standard Library Imports
 from PyPDF2 import PdfReader
 import re
 
-EDUCATION_WORDS: dict[str, int] = {
-    "phd": 4,
-    "doctorate": 4,
-    #
-    "master": 3,
-    "masters": 3,
-    #
-    "bachelor": 2,
-    "bachelors": 2,
-    #
-    "highschool": 1,
-    "high school": 1,
-    "diploma": 1,
-    #
-    "none": 0,
-}
 
+# endregion
+# #####################################################################
 
-# region Text Extractors
+# #####################################################################
+# region TEXT EXTRACTION
 
 
 def _extract_text(file) -> str | None:
@@ -57,12 +48,22 @@ def extract_text_as_str(file) -> str | None:
 
 
 # endregion
-# region Info Extractors
+# #####################################################################
+
+# #####################################################################
+# region EMAIL
 
 
 def extract_email(text: str):
     match = re.search(r"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}", text)
     return match.group(0) if match else "unknown"
+
+
+# endregion
+# #####################################################################
+
+# #####################################################################
+# region PHONE
 
 
 def extract_phone(text: str) -> str:
@@ -85,6 +86,13 @@ def extract_phone(text: str) -> str:
     return "unknown"
 
 
+# endregion
+# #####################################################################
+
+# #####################################################################
+# region SKILLS
+
+
 def extract_skills(text: str, required_skills: list[str]) -> list[str]:
     text_lower = text.lower()
     found = []
@@ -94,6 +102,31 @@ def extract_skills(text: str, required_skills: list[str]) -> list[str]:
             found.append(skill)
 
     return found
+
+
+# endregion
+# #####################################################################
+
+# #####################################################################
+# region EDUCATION
+
+
+EDUCATION_WORDS: dict[str, int] = {
+    "phd": 4,
+    "doctorate": 4,
+    #
+    "master": 3,
+    "masters": 3,
+    #
+    "bachelor": 2,
+    "bachelors": 2,
+    #
+    "highschool": 1,
+    "high school": 1,
+    "diploma": 1,
+    #
+    "none": 0,
+}
 
 
 def extract_education(text: str) -> str:
@@ -114,23 +147,11 @@ def extract_education(text: str) -> str:
     return result
 
 
-# def extract_experience(text: str) -> list[str]:
-#     lines = text.split("\n")
+# endregion
+# #####################################################################
 
-#     experience = []
-#     capture = False
-
-#     for line in lines:
-#         if "experience" in line.lower():
-#             capture = True
-#             continue
-
-#         if capture:
-#             if line.strip() == "":
-#                 break
-#             experience.append(line)
-
-#     return experience
+# #####################################################################
+# region NAME
 
 
 def extract_name(text: str) -> str:
