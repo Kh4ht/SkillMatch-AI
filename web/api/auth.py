@@ -1,6 +1,7 @@
 # region IMPORTS
 
 # Standard library imports
+import re
 import secrets
 from flask_login import login_user, logout_user
 from flask import Blueprint, render_template, request, redirect, url_for, flash, session
@@ -31,44 +32,50 @@ auth_bp = Blueprint("auth", __name__, url_prefix="/auth")
 
 @auth_bp.route("/register", methods=["GET"])
 def register_page():
-    """Display registration form"""
+    """Display Registration Form"""
+
     return render_template("register.html")
 
 
 @auth_bp.route("/register", methods=["POST"])
 def register_submit():
-    """Process registration form submission"""
-    username = request.form.get("username")
-    if username is None:
-        raise ValueError("username field is missing")
+    """Process Registration Form Submission"""
 
+    user_name = request.form.get("user_name")
     email = request.form.get("email")
-    if email is None:
-        raise ValueError("email field is missing")
-
     password = request.form.get("password")
-    if password is None:
-        raise ValueError("password field is missing")
-
     confirm_password = request.form.get("confirm_password")
-    if confirm_password is None:
-        raise ValueError("confirm_password field is missing")
+    company_name = request.form.get("company_name")
 
-    if password != confirm_password:
-        flash("Passwords don't match", "error")
-        return render_template("register.html", username=username, email=email)
+    # Validate Requests
+    if (
+        user_name is None
+        or email is None
+        or password is None
+        or confirm_password is None
+        or company_name is None
+    ):
+        raise ValueError("A Request Field Is NONE")
 
-    username = username.strip()
-    email = email.strip()
-
-    success, result = User.create_new_user(username, email, password)
+    success, msg = User.create_new_user(
+        user_name=user_name,
+        email=email,
+        password=password,
+        confirm_password=confirm_password,
+        company_name=company_name,
+    )
 
     if success:
-        flash("Registration successful! Please login.", "success")
+        flash(
+            f"Congratulations For Created Your Account {user_name}! Please login.",
+            "success",
+        )
         return redirect(url_for("auth.login_page"))
     else:
-        flash(result, "error")
-        return render_template("register.html", username=username, email=email)
+        flash(msg, "error")
+        return render_template(
+            "register.html", user_name=user_name, email=email, company_name=company_name
+        )
 
 
 # endregion
@@ -81,23 +88,21 @@ def register_submit():
 @auth_bp.route("/login", methods=["GET"])
 def login_page():
     """Display login form"""
+
     return render_template("login.html")
 
 
 @auth_bp.route("/login", methods=["POST"])
 def login_submit():
     """Process login form submission"""
+
     email_or_username = request.form.get("email_or_username")
-    if email_or_username is None:
-        raise ValueError("email_or_username field is missing")
-
     password = request.form.get("password")
-    if password is None:
-        raise ValueError("password field is missing")
+    # If Checkbox Is Not Checked It Will Be None
+    remember_me_value = request.form.get("remember_me_value")
 
-    remember_me_value = request.form.get("remember_me")
-    if remember_me_value is None:
-        raise ValueError("remember_me field is missing")
+    if email_or_username is None or password is None:
+        raise ValueError("A Request Field Is NONE")
 
     email_or_username.strip()
     remember_me = remember_me_value == "on"
@@ -106,17 +111,25 @@ def login_submit():
 
     if user:
         # Create Flask-Login user object
-        login_user(
+        login_success = login_user(
             user=user,
             remember=remember_me,
             duration=timedelta(days=30),
         )
-        flash(f"Welcome back, {user.username}!", "success")
-        next_page = request.args.get("next")
-        return redirect(next_page or url_for("index"))
+
+        if login_success:
+            # User authenticated successfully, update last login time
+            Database.UPDATE_user_last_login(user_id=user.id)
+
+            flash(f"Welcome back, {user.username}!", "success")
+            next_page = request.args.get("next")
+            return redirect(next_page or url_for("index"))
+        else:
+            flash("Login Failed!", "error")
+            return render_template("login.html", email_or_username=email_or_username)
     else:
         flash(error_message, "error")
-        return render_template("login.html")
+        return render_template("login.html", email_or_username=email_or_username)
 
 
 # endregion
@@ -129,7 +142,7 @@ def login_submit():
 @auth_bp.route("/logout")
 def logout():
     logout_user()
-    flash("You have been logged out", "info")
+    flash("You Have Been Logged Out!", "info")
     return redirect(url_for("index"))
 
 

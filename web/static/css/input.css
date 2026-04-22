@@ -1,15 +1,15 @@
-input[type="text"] {
+/* input type="text" */
+
+input {
     /* Basic appearance */
-    width: 100%;
-    padding: 6px 8px;
-    margin: 2px;
+    padding: 10px 15px;
     border: 1px solid #ddd;
-    border-radius: 8px;
+    border-radius: 10px;
     font-size: 16px;
     font-family: inherit;
 
     /* Background & text */
-    background-color: #f9f9f9;
+    background: linear-gradient(135deg, #f9f9f9 0%, #f5f5f5 100%);
     color: #333;
 
     /* Remove default outline */
@@ -19,14 +19,15 @@ input[type="text"] {
     transition: all 0.3s ease;
 }
 
-input[type="text"]::placeholder {
+input::placeholder {
     color: #999;
     font-style: italic;
-    opacity: 1;
     /* Firefox fixes lower opacity */
+    opacity: 1;
+    font-family: 'Courier New', Courier, monospace;
 }
 
-input[type="text"]:focus {
+input:focus {
     border-color: #007bff;
     border-right-color: #005ec2;
     border-bottom-color: #005ec2;
@@ -34,7 +35,7 @@ input[type="text"]:focus {
     box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
 }
 
-input[type="text"]:focus::placeholder {
+input:focus::placeholder {
     color: transparent;
     transition: 0.3s ease;
 }

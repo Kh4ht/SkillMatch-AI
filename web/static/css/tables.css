@@ -9,28 +9,34 @@ table {
     overflow: hidden;
 }
 
-th,
-td {
-    text-align: left;
-}
-
 thead {
     background: linear-gradient(135deg, #476582 0%, #2c3e50 100%);
     color: white;
 }
 
+/* Fixed header */
+thead th {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    box-shadow: 0 2px 2px -1px rgba(0, 0, 0, 0.1);
+}
+
 th {
     padding: 15px;
-    text-align: left;
     cursor: pointer;
     font-weight: 500;
     font-size: 16px;
+    text-align: left;
+
 }
 
 td {
     padding: 12px 15px;
     border-bottom: 1px solid #e0e0e0;
     color: #333;
+    text-align: left;
+
 }
 
 tbody tr:hover {

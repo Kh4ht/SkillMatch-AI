@@ -3,7 +3,7 @@
 
 # Standard Library Imports
 from flask import Flask, render_template, request, redirect, url_for, flash
-from flask_login import LoginManager
+from flask_login import LoginManager, login_required
 import os
 
 # Local Imports
@@ -23,25 +23,38 @@ from auth import auth_bp
 # region FLASK SETUP
 
 
-# Get the directory where this script is located
-script_dir = os.path.dirname(os.path.abspath(__file__))
-# Go up one level to project root (from web/api/ to SkillMatch-AI/)
-project_root = os.path.dirname(os.path.dirname(script_dir))
+def create_app():
+    """Application factory pattern"""
 
-# Set template and static folders
-template_dir = os.path.join(project_root, "web", "templates")
-static_dir = os.path.join(project_root, "web", "static")
+    # Get the directory where this script is located
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    # Go up one level to project root (from web/api/ to SkillMatch-AI/)
+    project_root = os.path.dirname(os.path.dirname(script_dir))
 
-app = Flask(
-    __name__,
-    template_folder=template_dir,
-    static_folder=static_dir,
-)
+    # Set template and static folders
+    template_dir = os.path.join(project_root, "web", "templates")
+    static_dir = os.path.join(project_root, "web", "static")
 
-app.secret_key = "dev-key-please-change-in-production"
+    # Create Flask app only once
+    app = Flask(
+        __name__,
+        template_folder=template_dir,
+        static_folder=static_dir,
+    )
 
-# Register Blueprints
-app.register_blueprint(auth_bp)
+    # Initialize database when app starts (call once)
+    Database.init_db()
+
+    app.secret_key = "dev-key-please-change-in-production"
+
+    # Register Blueprints
+    app.register_blueprint(auth_bp)
+
+    return app
+
+
+# Create App
+app = create_app()
 
 
 # endregion
@@ -53,14 +66,32 @@ app.register_blueprint(auth_bp)
 
 login_manager = LoginManager()
 login_manager.init_app(app)
-login_manager.login_view = "login"  # type: ignore # Will create this route
-login_manager.login_message = "Please log in to access this page"
+# When Login Is Required To View A Route/ Page, Will Redirect To This Login Route
+login_manager.login_view = "auth.login_page"  # type: ignore
+
+# flash() message content
+login_manager.login_message = "Please Log In To Access This Page"
+
+# flash() message category
 login_manager.login_message_category = "info"
 
 
 @login_manager.user_loader
 def load_user(user_id):
-    return User.get_user_by_ID(user_id)
+
+    user_data = Database.SELECT_user_BY_id(user_id=user_id)
+
+    if user_data:
+        return User(
+            id=user_data["id"],
+            username=user_data["user_name"],
+            email=user_data["email"],
+            company_name=user_data["company_name"],
+            created_at=user_data["created_at"],
+            last_login=user_data["last_login"],
+        )
+    else:
+        return None
 
 
 # endregion
@@ -83,6 +114,7 @@ def index():
 
 
 @app.route("/parse_resumes")
+@login_required
 def parse_resumes_page():
     return render_template("parse_resumes.html")
 
@@ -147,11 +179,11 @@ def upload():
 # #####################################################################
 
 # #####################################################################
-# region ADD JOB
+# region ADD JOB SUBMIT
 
 
 @app.route("/add_job", methods=["POST"])
-def add_new_job_submit():
+def add_job_submit():
     job_title = request.form.get("job_title")
     required_skills = request.form.get("required_skills")
     min_education = request.form.get("min_education")
@@ -201,7 +233,7 @@ def delete_candidates():
 # region RUN APP
 
 
-if __name__ == "__main__":  # to prevent unwanted execution
+if __name__ == "__main__":
     app.run(debug=True)
 
 

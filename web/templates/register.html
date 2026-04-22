@@ -12,12 +12,6 @@
 {% block style %}
 
 <style>
-    /* Global Layout Styles */
-    body {
-        background: linear-gradient(135deg, #eaf2ff, #f7fbff);
-        font-family: Arial, sans-serif;
-    }
-
     .wrapper {
         display: flex;
         justify-content: center;
@@ -89,24 +83,6 @@
         color: #2780e6;
     }
 
-    /* Action Button Styling */
-    .btn {
-        width: 100%;
-        padding: 14px;
-        background: #2780e6;
-        color: white;
-        border: none;
-        border-radius: 10px;
-        cursor: pointer;
-        font-weight: bold;
-        transition: 0.3s ease;
-    }
-
-    .btn:hover {
-        background: #1a6bc3;
-        transform: translateY(-2px);
-    }
-
     /* Footer Link Styling */
     .register-link {
         text-align: center;
@@ -147,25 +123,26 @@
 {% block body %}
 
 <div class="wrapper">
-    <div class="login-card" style="flex-direction: row-reverse;">
+    <div class="login-card">
 
-        <div class="left-side">
+        <div class=" left-side">
             <h1>Create Account 🚀</h1>
             <p class="subtitle">Join **SkillMatch AI** and start managing your recruitment process.</p>
 
             <form action="{{ url_for('auth.register_submit') }}" method="POST">
+
                 <div class="input-box">
-                    <input type="text" name="fullname" placeholder="Full Name" required>
+                    <input type="text" name="user_name" placeholder="Full Name" value="{{ user_name }}" required>
                     <i class='fas fa-user-tag'></i>
                 </div>
 
                 <div class="input-box">
-                    <input type="email" name="email" placeholder="Work Email" required>
+                    <input type="email" name="email" placeholder="Work Email" value="{{ email }}" required>
                     <i class='fas fa-envelope'></i>
                 </div>
 
                 <div class="input-box">
-                    <input type="text" name="company" placeholder="Company Name" required>
+                    <input type="text" name="company_name" placeholder="Company Name" value="{{ company_name }}">
                     <i class='fas fa-building'></i>
                 </div>
 
@@ -180,7 +157,7 @@
                     <i class='fas fa-eye toggle-password' onclick="togglePassword('confirm_password', this)"></i>
                 </div>
 
-                <button type="submit" class="btn">Create Account</button>
+                <button class="btn btn-green" type="submit" style="width: 100%;">Create Account</button>
 
                 <div class="register-link">
                     <p>Already have an account? <a href="{{ url_for('auth.login_page') }}">Login</a></p>

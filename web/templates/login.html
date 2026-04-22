@@ -12,12 +12,6 @@
 {% block style %}
 
 <style>
-    /* Base Page Styles */
-    body {
-        background: linear-gradient(135deg, #eaf2ff, #f7fbff);
-        font-family: Arial, sans-serif;
-    }
-
     .wrapper {
         display: flex;
         justify-content: center;
@@ -78,24 +72,6 @@
         color: #999;
         font-size: 18px;
         pointer-events: none;
-    }
-
-    /* Primary Button Styling */
-    .btn {
-        width: 100%;
-        padding: 14px;
-        background: #2780e6;
-        color: white;
-        border: none;
-        border-radius: 10px;
-        cursor: pointer;
-        font-weight: bold;
-        transition: 0.3s ease;
-    }
-
-    .btn:hover {
-        background: #1a6bc3;
-        transform: translateY(-2px);
     }
 
     /* Auth Navigation Links */
@@ -218,7 +194,7 @@
 
             <form action="{{ url_for('auth.login_submit') }}" method="POST">
                 <div class="input-box">
-                    <input type="text" name="username" placeholder="Username" required>
+                    <input type="text" name="email_or_username" placeholder="Username" required>
                     <i class='fas fa-user'></i>
                 </div>
 
@@ -229,12 +205,12 @@
 
                 <div class="remember-forget">
                     <label>
-                        <input type="checkbox" name="remember"> Remember me
+                        <input type="checkbox" name="remember_me_value"> Remember me
                     </label>
                     <a href="#" onclick="openModal(event)">Forgot Password?</a>
                 </div>
 
-                <button type="submit" class="btn">Login</button>
+                <button class="btn btn-green" type="submit" style="width: 100%;">Login</button>
 
                 <div class="register-link">
                     <p>Don't have an account? <a href="{{ url_for('auth.register_page') }}">Register</a></p>
@@ -265,7 +241,7 @@
                         style="position: absolute; right: 15px; top: 50%; transform: translateY(-50%); color: #2780e6;"></i>
                 </div>
             </div>
-            <button type="submit" class="btn" style="margin-top: 20px;">Send Reset Link</button>
+            <button class="btn btn-green" type="submit" style="margin-top: 20px; width: 100%">Send Reset Link</button>
         </form>
     </div>
 </div>

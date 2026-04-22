@@ -5,6 +5,8 @@
 import sqlite3, os
 from typing import Any
 
+# Local imports
+
 
 # endregion
 # #####################################################################
@@ -14,7 +16,7 @@ from typing import Any
 
 
 class Database:
-    """Database class to handle all database operations"""
+    """Database Class To Handle All Database Operations"""
 
     # Get database path (relative to this file)
     __db_path = os.path.join(
@@ -43,10 +45,13 @@ class Database:
             conn.execute(
                 """
                 CREATE TABLE IF NOT EXISTS users (
-                    user_id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    username TEXT UNIQUE NOT NULL,
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    
+                    user_name TEXT UNIQUE NOT NULL,
                     email TEXT UNIQUE NOT NULL,
-                    password_hash TEXT UNIQUE NOT NULL,
+                    password_hash TEXT NOT NULL,
+                    company_name TEXT,
+                    
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                     is_active INTEGER DEFAULT 1,
                     last_login TIMESTAMP
@@ -60,7 +65,7 @@ class Database:
                 CREATE TABLE IF NOT EXISTS user_settings (
                     user_id INTEGER PRIMARY KEY,
                     theme TEXT DEFAULT 'light',
-                    FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE
+                    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
                 )
             """
             )
@@ -75,7 +80,7 @@ class Database:
                     user_agent TEXT,
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                     expires_at TIMESTAMP,
-                    FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE
+                    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
                 )
             """
             )
@@ -84,16 +89,16 @@ class Database:
             conn.execute(
                 """
                 CREATE TABLE IF NOT EXISTS jobs (
-                    job_id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
                     user_id INTEGER NOT NULL,
-                    job_name TEXT NOT NULL,
+                    title TEXT UNIQUE NOT NULL,
                     min_edu TEXT,
-                    min_edu_weight INTEGER DEFAULT 1,
                     min_exp INTEGER,
+                    min_edu_weight INTEGER DEFAULT 1,
                     min_exp_weight INTEGER DEFAULT 1,
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE
+                    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
                 )
             """
             )
@@ -102,11 +107,11 @@ class Database:
             conn.execute(
                 """
                 CREATE TABLE IF NOT EXISTS job_skills (
-                    skill_id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
                     job_id INTEGER NOT NULL,
                     skill_name TEXT NOT NULL,
-                    skill_weight INTEGER DEFAULT 1,
-                    FOREIGN KEY (job_id) REFERENCES jobs(job_id) ON DELETE CASCADE
+                    weight INTEGER DEFAULT 1,
+                    FOREIGN KEY (job_id) REFERENCES jobs(id) ON DELETE CASCADE
                 )
             """
             )
@@ -115,7 +120,7 @@ class Database:
             conn.execute(
                 """
                 CREATE TABLE IF NOT EXISTS candidates (
-                    candidate_id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
                     job_id INTEGER NOT NULL,
                     name TEXT NOT NULL,
                     email TEXT UNIQUE NOT NULL,
@@ -125,7 +130,7 @@ class Database:
                     skills TEXT,
                     match_score REAL,
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    FOREIGN KEY (job_id) REFERENCES jobs(job_id) ON DELETE CASCADE
+                    FOREIGN KEY (job_id) REFERENCES jobs(id) ON DELETE CASCADE
                 )
             """
             )
@@ -140,7 +145,7 @@ class Database:
                 AFTER INSERT ON users
                 BEGIN
                     INSERT INTO user_settings (user_id)
-                    VALUES (NEW.user_id);
+                    VALUES (NEW.id);
                 END
             """
             )
@@ -154,7 +159,7 @@ class Database:
                 BEGIN
                     UPDATE jobs 
                     SET updated_at = CURRENT_TIMESTAMP 
-                    WHERE job_id = NEW.job_id;
+                    WHERE id = NEW.id;
                 END
             """
             )
@@ -164,7 +169,7 @@ class Database:
             # Users indexes
             conn.execute("CREATE INDEX IF NOT EXISTS idx_users_email ON users(email)")
             conn.execute(
-                "CREATE INDEX IF NOT EXISTS idx_users_username ON users(username)"
+                "CREATE INDEX IF NOT EXISTS idx_users_username ON users(user_name)"
             )
 
             # User sessions indexes
@@ -177,9 +182,7 @@ class Database:
 
             # Jobs indexes
             conn.execute("CREATE INDEX IF NOT EXISTS idx_jobs_user_id ON jobs(user_id)")
-            conn.execute(
-                "CREATE INDEX IF NOT EXISTS idx_jobs_job_name ON jobs(job_name)"
-            )
+            conn.execute("CREATE INDEX IF NOT EXISTS idx_jobs_title ON jobs(title)")
 
             # Job skills indexes
             conn.execute(
@@ -229,65 +232,131 @@ class Database:
             conn.commit()
             return cursor.rowcount  # Return number of affected rows
 
+    # region USER QUERIES
+
+    @classmethod
+    def UPDATE_user_last_login(cls, user_id: int) -> bool:
+        """Update the last_login timestamp for a user. Returns True if successful."""
+
+        try:
+            affected_rows_count = cls.execute_set(
+                """
+                UPDATE users 
+                SET last_login = CURRENT_TIMESTAMP 
+                WHERE id = ?
+                """,
+                (user_id,),
+            )
+
+            if affected_rows_count > 0:
+                return True
+            else:
+                # User with this ID doesn't exist
+                print(f"Warning: No user found with id {user_id}")
+                return False
+
+        except Exception as e:
+            print(f"Error updating last_login for user {user_id}: {e}")
+            return False
+
+    @classmethod
+    def SELECT_user_BY_username_or_email(
+        cls, user_name_or_email: str
+    ) -> dict[str, Any] | None:
+        """Get User By Username Or Email, And Return User Data If Found"""
+
+        return cls.execute_select_one(
+            """
+            SELECT *
+            FROM users 
+            WHERE email = ? OR user_name = ?
+        """,
+            (user_name_or_email, user_name_or_email),
+        )
+
+    @classmethod
+    def SELECT_user_BY_id(cls, user_id: int) -> dict[str, Any] | None:
+        """Get User By ID, And Return User Data If Found"""
+
+        return cls.execute_select_one(
+            """
+            SELECT *
+            FROM users
+            WHERE id = ?
+            """,
+            (user_id),
+        )
+
+    @classmethod
+    def INSERT_user(
+        cls,
+        user_name: str,
+        email: str,
+        password_hash: str,
+        company_name: str = "unknown",
+    ) -> tuple[bool, str]:
+        """Add A New User To The users Table And Returns True If Added Successfully."""
+        try:
+            affected_rows_count = cls.execute_set(
+                """
+                INSERT INTO users
+                (user_name, email, password_hash, company_name)
+                VALUES (?, ?, ?, ?)
+                """,
+                (user_name, email, password_hash, company_name),
+            )
+
+            return (
+                (True, "User created successfully")
+                if affected_rows_count > 0
+                else (False, "Insertion Failed")
+            )
+        except sqlite3.IntegrityError as e:
+            # Handle unique constraint violations
+            error_msg = str(e)
+            if "user_name" in error_msg or "users.user_name" in error_msg:
+                return (
+                    False,
+                    f"Username '{user_name}' is already taken. Please choose a different username.",
+                )
+            elif "email" in error_msg or "users.email" in error_msg:
+                return (
+                    False,
+                    f"Email '{email}' is already registered. Please use a different email address or log in.",
+                )
+            else:
+                return False, f"Database integrity error: {error_msg}"
+        except Exception as e:
+            # Handle any other unexpected errors
+            return False, f"An unexpected error occurred: {str(e)}"
+
+    # endregion
+    # region JOB QUERIES
+
+    @classmethod
+    def INSERT_job(
+        cls, user_id, title, min_edu, min_exp, min_edu_weight=1, min_exp_weight=1
+    ) -> bool:
+        """Add A New Job To The jobs Table And Returns True If Added Successfully."""
+
+        affected_rows_num = cls.execute_set(
+            """
+            INSERT INTO jobs
+            (user_id, title, min_edu, min_exp, min_edu_weight, min_exp_weight)
+            VALUES (?, ?, ?, ?, ?, ?)
+            """,
+            (user_id, title, min_edu, min_exp, min_edu_weight, min_exp_weight),
+        )
+        return affected_rows_num > 0
+
+    # endregion
+
 
 # endregion
 
-# print(Database.execute("SELECT * FROM candidates"))
 
 """
-sqlite3 src/api/instance/skillmatch.db
+sqlite3 web/instance/skillmatch.db
 .mode box
-SELECT * FROM candidates;
-"""
-
-# -- Add a new column --
-"""
-ALTER TABLE #table_name ADD COLUMN #column_name #TYPE NOT NULL DEFAULT #value;
-"""
-
-# -- rename table --
-"""
-ALTER TABLE #old_name RENAME TO #new_name;
-"""
-
-# -- delete table --
-"""
-DROP TABLE #table_name
-"""
-
-# -- Insert with all columns specified --
-"""
-INSERT INTO table_name (column1_name, column2_name, column3_name) 
-VALUES (value1, value2, value3);
-"""
-
-# -- Insert without specifying columns (must provide values for ALL columns) --
-"""
-INSERT INTO table_name 
-VALUES (value1, value2, value3);
-"""
-
-# -- List all triggers --
-"""
-SELECT name FROM sqlite_master WHERE type='trigger';
-"""
-
-# -- Delete a trigger if needed --
-"""
-DROP TRIGGER IF EXISTS auto_create_user_settings;
-"""
-
-# -- Reset auto-increment counter --
-"""
-DELETE FROM sqlite_sequence WHERE name='users';
-"""
-
-# -- List all tables --
-"""
-.tables
-"""
-
-# -- Check your SQLite version --
-"""
-SELECT sqlite_version();
+SELECT * FROM users;
 """

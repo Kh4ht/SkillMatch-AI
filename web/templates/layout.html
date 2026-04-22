@@ -10,9 +10,14 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/buttons.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/containers.css') }}">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/input_type_text.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/input.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/tables.css') }}">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/headers.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/headers_labels.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/popup_effect.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/windows.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/flash_msg.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/flash_msg.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/dropdown.css') }}">
 
     <!-- Link To External CSS Scripts -->
 
@@ -39,10 +44,10 @@
 
             <!-- Center/Left nav links (core features) -->
             <ul class="nav-menu">
-                <li><a href="{{ url_for('index') }}" {% if request.endpoint=='index' %}class="active" {% endif
-                        %}>Home</a></li>
+                <li><a href="{{ url_for('index') }}" {% if request.endpoint=='index' %}class="active" {% endif %}><i
+                            class="fa-solid fa-house"></i> Home</a></li>
                 <li><a href="{{ url_for('parse_resumes_page') }}" {% if request.endpoint=='parse_resumes_page'
-                        %}class="active" {% endif %}>Parse Resumes</a></li>
+                        %}class="active" {% endif %}><i class="fa-solid fa-file"></i> Parse Resumes</a></li>
             </ul>
 
             <!-- Right-side account menu -->
@@ -51,32 +56,87 @@
                 <!-- Logged in: show avatar/dropdown -->
                 <div class="dropdown">
                     <button class="dropbtn">
-                        <i class="fas fa-user-circle"></i> {{ current_user.username }}
-                        <i class="fas fa-chevron-down"></i>
+                        <div class="avatar">
+                            {% if current_user.avatar %}
+                            <img src="{{ url_for('static', filename='avatars/' + current_user.avatar) }}" alt="Avatar">
+                            {% else %}
+                            <div class="avatar-initials">
+                                {{ current_user.username[0]|upper }}
+                            </div>
+                            {% endif %}
+                        </div>
+                        <span class="username">{{ current_user.username }}</span>
+                        <i class="fas fa-chevron-down dropdown-icon"></i>
                     </button>
                     <div class="dropdown-content">
-                        <a href="{{ url_for('auth.profile') }}"><i class="fas fa-id-card"></i> My Profile</a>
-                        <!-- <a href="{{ url_for('dashboard') }}"><i class="fas fa-chart-line"></i> Dashboard</a> -->
-                        <a href="{{ url_for('auth.settings') }}"><i class="fas fa-cog"></i> Settings</a>
-                        <hr>
-                        <a href="{{ url_for('auth.logout') }}"><i class="fas fa-sign-out-alt"></i> Logout</a>
+                        <a href="{{ url_for('auth.profile') }}">
+                            <i class="fas fa-user-circle"></i>
+                            <span>My Profile</span>
+                        </a>
+                        <a href="{{ url_for('auth.settings') }}">
+                            <i class="fas fa-cog"></i>
+                            <span>Settings</span>
+                        </a>
+                        <div class="dropdown-divider"></div>
+                        <a href="{{ url_for('auth.logout') }}" class="logout-link">
+                            <i class="fas fa-sign-out-alt"></i>
+                            <span>Logout</span>
+                        </a>
                     </div>
                 </div>
                 {% else %}
                 <!-- Logged out: simple login button -->
                 <a href="{{ url_for('auth.login_page') }}" class="btn-login">
-                    <i class="fas fa-sign-in-alt"></i> Login
+                    <i class="fas fa-sign-in-alt"></i>
+                    <span>Login</span>
                 </a>
                 {% endif %}
             </div>
         </div>
     </nav>
 
+    <!-- Flash Messages Container - Positioned right below navbar -->
+    <div class="flash-container">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+        {% for category, message in messages %}
+        <div class="flash-message flash-{{ category }}" role="alert">
+            <div class="flash-content">
+                <span class="flash-icon">
+                    {% if category == 'success' %}
+                    <i class="fa-solid fa-circle-check"></i>
+                    {% elif category == 'error' %}
+                    <i class="fa-solid fa-circle-xmark"></i>
+                    {% elif category == 'warning' %}
+                    <i class="fa-solid fa-triangle-exclamation"></i>
+                    {% else %}
+                    ℹ
+                    {% endif %}
+                </span>
+                <span class="flash-text">{{ message }}</span>
+                <span class="flash-close" onclick="this.parentElement.parentElement.remove()">&times;</span>
+            </div>
+            <div class="flash-progress"></div>
+        </div>
+        {% endfor %}
+        {% endif %}
+        {% endwith %}
+    </div>
+
+
     <!-- Main Content -->
-    <main class="main-container">
+    <main style="max-width: 80%;
+                 margin: 2rem auto;
+                 padding: 0 2rem;">
+
         {% block body %}
         {% endblock body %}
+
     </main>
+
+    <!-- JavaScript Section -->
+    <script src="{{ url_for('static', filename='js/utils.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/dropdown.js') }}"></script>
 
     {% block script %}
     {% endblock script %}

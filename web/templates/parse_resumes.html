@@ -12,6 +12,85 @@
 {% block style %}
 
 <style>
+    .job-card {
+        /* Shape & Design */
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border-radius: 16px;
+        padding: 40px 20px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+
+        /* Text styling */
+        color: white;
+        font-size: 18px;
+        font-weight: 600;
+        text-align: center;
+
+        /* Interactive */
+        cursor: pointer;
+        transition: all 0.3s ease;
+
+        /* Center text */
+        display: flex;
+        align-items: center;
+        justify-content: center;
+
+        /* Ensure consistent height */
+        min-height: 100px;
+    }
+
+    /* Hover effect */
+    .job-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+    }
+
+    /* Active/Selected state */
+    .job-card.active {
+        background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+        transform: scale(1.02);
+        box-shadow: 0 15px 35px rgba(0, 0, 0, 0.3);
+    }
+
+
+
+
+    .added-skill {
+        background: white;
+        color: black;
+        border-radius: 9999px;
+        border-color: #006ee4;
+        padding: 10px;
+        margin: 4px;
+        font-weight: bold;
+
+        display: inline-block;
+        /* Ens proper spacing */
+        position: relative;
+        /* For positioning the pseudo-element */
+    }
+
+    .added-skill:enabled:hover {
+        background: white;
+        color: rgb(72, 0, 0);
+        border-color: red;
+        transition: 0.3s ease;
+    }
+
+    /* Add X on hover */
+    .added-skill:hover::after {
+        /* The X symbol */
+        content: "✕";
+        position: absolute;
+        /* Position from left edge */
+        left: 50%;
+        top: 50%;
+        /* Center both horizontally and vertically */
+        transform: translate(-50%, -50%);
+        color: rgba(255, 0, 0, 0.1);
+        font-weight: bold;
+        font-size: 40px;
+    }
+
     /* Define specific widths for each column */
     .candidates-table th:nth-child(1),
     .candidates-table td:nth-child(1) {
@@ -60,28 +139,6 @@
         width: 80px;
     }
 
-
-
-
-
-
-
-
-
-
-    /* Candidates Table Section */
-    .candidates-table-container {
-        overflow-x: auto;
-    }
-
-
-
-
-    .candidates-table th {
-
-        user-select: none;
-    }
-
     .match-score {
         display: inline-block;
         padding: 4px 8px;
@@ -104,29 +161,6 @@
         background: #5a6268;
     }
 
-    /* Modal */
-    .modal {
-        display: none;
-        position: fixed;
-        z-index: 1000;
-        left: 0;
-        top: 0;
-        width: 100%;
-        height: 100%;
-        background-color: rgba(0, 0, 0, 0.5);
-    }
-
-    .modal-content {
-        background-color: white;
-        margin: 5% auto;
-        padding: 20px;
-        border-radius: 8px;
-        width: 80%;
-        max-width: 600px;
-        max-height: 80%;
-        overflow-y: auto;
-    }
-
     .close {
         font-size: 28px;
         font-weight: bold;
@@ -138,29 +172,6 @@
         color: #000;
     }
 
-    .form-group {
-        margin-bottom: 15px;
-    }
-
-    .form-group label {
-        display: block;
-        margin-bottom: 5px;
-        font-weight: 600;
-        color: #555;
-    }
-
-    .form-group input,
-    .form-group textarea {
-        width: 100%;
-        padding: 8px;
-        border: 1px solid #ddd;
-        border-radius: 4px;
-    }
-
-    .form-group textarea {
-        resize: vertical;
-        min-height: 100px;
-    }
 
     .loading {
         text-align: center;
@@ -181,29 +192,65 @@
         <h2>
             <i class="fa-solid fa-briefcase"></i> Jobs
         </h2>
-        <button onclick="showAddJobModal()">
+        <button class="btn btn-green" onclick="openWindow('addJob-window')">
             <i class="fa-solid fa-plus"></i> Add New Job
         </button>
     </div>
 
-    <div class="grid-container">
+    <div class="horizontal-container">
         <!-- Jobs will be loaded here dynamically -->
-        <div class="item">
+        <div id="0" class="job-card" onclick="selectJob('0')">
             item 1 item 1i
         </div>
-        <div class="item">
+        <div id="1" class="job-card" onclick="selectJob('1')">
             item 2
         </div>
-        <div class="item">
+        <div id="2" class="job-card" onclick="selectJob('2')">
             item 3
         </div>
-        <div class="item">
+        <div id="3" class="job-card" onclick="selectJob('3')">
             item 4
         </div>
-        <div class="item">
+        <div id="4" class="job-card" onclick="selectJob('4')">
             item 5
         </div>
-        <div class="item">
+        <div id="5" class="job-card" onclick="selectJob('5')">
+            item 6
+        </div>
+        <div id="0" class="job-card" onclick="selectJob('0')">
+            item 1 item 1i
+        </div>
+        <div id="1" class="job-card" onclick="selectJob('1')">
+            item 2
+        </div>
+        <div id="2" class="job-card" onclick="selectJob('2')">
+            item 3
+        </div>
+        <div id="3" class="job-card" onclick="selectJob('3')">
+            item 4
+        </div>
+        <div id="4" class="job-card" onclick="selectJob('4')">
+            item 5
+        </div>
+        <div id="5" class="job-card" onclick="selectJob('5')">
+            item 6
+        </div>
+        <div id="0" class="job-card" onclick="selectJob('0')">
+            item 1 item 1i
+        </div>
+        <div id="1" class="job-card" onclick="selectJob('1')">
+            item 2
+        </div>
+        <div id="2" class="job-card" onclick="selectJob('2')">
+            item 3
+        </div>
+        <div id="3" class="job-card" onclick="selectJob('3')">
+            item 4
+        </div>
+        <div id="4" class="job-card" onclick="selectJob('4')">
+            item 5
+        </div>
+        <div id="5" class="job-card" onclick="selectJob('5')">
             item 6
         </div>
     </div>
@@ -211,16 +258,16 @@
 </div>
 
 
-<!-- Candidates Table Section -->
+<!-- Candidates Table Container -->
 <div class="content-container" style="height: 1000px;">
 
-    <!-- Job Requirements Section -->
-    <div class="vertical-container" style="margin-bottom: 30px;">
+    <!-- Job Details Section -->
+    <div class="vertical-container" style="margin-bottom: 30px; height: 550px;">
         <div class="items-container">
             <h3>
-                <i class="fa-solid fa-circle-info"></i> Job Requirements
+                <i class="fa-solid fa-circle-info"></i> Job Details
             </h3>
-            <button class="blue">
+            <button class="btn">
                 <i class="fa-solid fa-pen-to-square"></i> Edit Job Requirements
             </button>
         </div>
@@ -238,7 +285,7 @@
             <i class="fa-solid fa-people-group"></i> Candidates Table
         </h3>
         <input type="file" id="resumeUpload" style="display: none;" accept=".pdf" multiple>
-        <button class="blue">
+        <button class="btn">
             <i class="fa-solid fa-plus"></i> Add Candidates
         </button>
     </div>
@@ -246,54 +293,20 @@
     <!-- Search Section -->
     <div class="items-container" style="margin-bottom: 30px;">
         <i class="fa-solid fa-magnifying-glass"></i>
-        <input type="text" id="search_txt_input" placeholder="Search Table . . ." />
-        <button type="button" title="Clear Search Input" id="clear_search_btn" disabled>
+        <input type="text" style="width: 100%;" id="search_txt_input" placeholder="Search Table . . ." />
+        <button class="btn btn-green" title="Clear Search Input" id="clear_search_btn" disabled>
             Clear
         </button>
     </div>
 
-    <!-- Table Section -->
-    <div class="candidates-table-container">
-        <table id="candidatesTable">
-            <thead>
-                <tr>
-                    <th onclick="sortTable('name')">Name ⬍</th>
-                    <th onclick="sortTable('email')">Email ⬍</th>
-                    <th onclick="sortTable('skills')">Skills ⬍</th>
-                    <th onclick="sortTable('experience')">Experience ⬍</th>
-                    <th onclick="sortTable('matchScore')">Match Score ⬍</th>
-                    <th>Actions</th>
-                </tr>
-            </thead>
-            <tbody id="candidatesTableBody">
-                <tr>
-                    <td colspan="6" class="no-data">Select a job to view candidates</td>
-                </tr>
-                <tr>
-                    <td class="no-data">Selecasdfasdfasdfasfdt</td>
-                    <td class="no-data">Select</td>
-                    <td class="no-data">Select</td>
-                    <td class="no-data">Select</td>
-                    <td class="no-data">Select</td>
-                    <td class="no-data">Select</td>
-                </tr>
-                <tr>
-                    <td class="no-data">Select</td>
-                    <td class="no-data">Select</td>
-                    <td class="no-data">Select</td>
-                    <td class="no-data">Select</td>
-                    <td class="no-data">Select</td>
-                    <td class="no-data">Select</td>
-                </tr>
-            </tbody>
-        </table>
-    </div>
 
-    <div>
-        <table class="candidates-table">
+    <!-- Table Section -->
+    <!-- Scrollable container for the table -->
+    <div class="container">
+        <table id="candidates-table" class="candidates-table">
             <thead>
                 <tr>
-                    <th class="checkbox-col"><i class="fa-solid fa-circle-check"></i></th>
+                    <th style="position: sticky;" class="checkbox-col"><i class="fa-solid fa-circle-check"></i></th>
                     <th>Name</th>
                     <th>Email</th>
                     <th>Phone</th>
@@ -306,7 +319,7 @@
             <tbody>
                 {% for item in candidates %}
                 <tr>
-                    <td class="checkbox-col">
+                    <td class=" checkbox-col">
                         <input type="checkbox" name="selected_candidates" value="{{ item['id'] }}"
                             onchange="updateDeleteButton()" />
                     </td>
@@ -323,42 +336,279 @@
                     <td class="match-score">{{ item["match_score"] }}</td>
                 </tr>
                 {% endfor %}
+
+                <tr>
+                    <td>c</td>
+                    <td>Select</td>
+                    <td>Select</td>
+                    <td>Select</td>
+                    <td>Select</td>
+                    <td>Select</td>
+                    <td>Select</td>
+                    <td class="match-score">20</td>
+                </tr>
+                <tr>
+                    <td>c</td>
+                    <td>Select</td>
+                    <td>Select</td>
+                    <td>Select</td>
+                    <td>Select</td>
+                    <td>Select</td>
+                    <td>Select</td>
+                    <td class="match-score">90</td>
+                </tr>
+                <tr>
+                    <td>c</td>
+                    <td>Select</td>
+                    <td>Select</td>
+                    <td>Select</td>
+                    <td>Select</td>
+                    <td>Select</td>
+                    <td>Select</td>
+                    <td class="match-score">90</td>
+                </tr>
+                <tr>
+                    <td>c</td>
+                    <td>Select</td>
+                    <td>Select</td>
+                    <td>Select</td>
+                    <td>Select</td>
+                    <td>Select</td>
+                    <td>Select</td>
+                    <td class="match-score">90</td>
+                </tr>
+                <tr>
+                    <td>c</td>
+                    <td>Select</td>
+                    <td>Select</td>
+                    <td>Select</td>
+                    <td>Select</td>
+                    <td>Select</td>
+                    <td>Select</td>
+                    <td class="match-score">90</td>
+                </tr>
+                <tr>
+                    <td>c</td>
+                    <td>Select</td>
+                    <td>Select</td>
+                    <td>Select</td>
+                    <td>Select</td>
+                    <td>Select</td>
+                    <td>Select</td>
+                    <td class="match-score">90</td>
+                </tr>
+                <tr>
+                    <td>c</td>
+                    <td>Select</td>
+                    <td>Select</td>
+                    <td>Select</td>
+                    <td>Select</td>
+                    <td>Select</td>
+                    <td>Select</td>
+                    <td class="match-score">90</td>
+                </tr>
+                <tr>
+                    <td>c</td>
+                    <td>Select</td>
+                    <td>Select</td>
+                    <td>Select</td>
+                    <td>Select</td>
+                    <td>Select</td>
+                    <td>Select</td>
+                    <td class="match-score">90</td>
+                </tr>
+                <tr>
+                    <td>c</td>
+                    <td>Select</td>
+                    <td>Select</td>
+                    <td>Select</td>
+                    <td>Select</td>
+                    <td>Select</td>
+                    <td>Select</td>
+                    <td class="match-score">90</td>
+                </tr>
+                <tr>
+                    <td>c</td>
+                    <td>Select</td>
+                    <td>Select</td>
+                    <td>Select</td>
+                    <td>Select</td>
+                    <td>Select</td>
+                    <td>Select</td>
+                    <td class="match-score">90</td>
+                </tr>
+                <tr>
+                    <td>c</td>
+                    <td>Select</td>
+                    <td>Select</td>
+                    <td>Select</td>
+                    <td>Select</td>
+                    <td>Select</td>
+                    <td>Select</td>
+                    <td class="match-score">90</td>
+                </tr>
+                <tr>
+                    <td>c</td>
+                    <td>Select</td>
+                    <td>Select</td>
+                    <td>Select</td>
+                    <td>Select</td>
+                    <td>Select</td>
+                    <td>Select</td>
+                    <td class="match-score">90</td>
+                </tr>
+                <tr>
+                    <td>c</td>
+                    <td>Select</td>
+                    <td>Select</td>
+                    <td>Select</td>
+                    <td>Select</td>
+                    <td>Select</td>
+                    <td>Select</td>
+                    <td class="match-score">90</td>
+                </tr>
+                <tr>
+                    <td>c</td>
+                    <td>Select</td>
+                    <td>Select</td>
+                    <td>Select</td>
+                    <td>Select</td>
+                    <td>Select</td>
+                    <td>Select</td>
+                    <td class="match-score">90</td>
+                </tr>
+                <tr>
+                    <td>c</td>
+                    <td>Select</td>
+                    <td>Select</td>
+                    <td>Select</td>
+                    <td>Select</td>
+                    <td>Select</td>
+                    <td>Select</td>
+                    <td class="match-score">90</td>
+                </tr>
+                <tr>
+                    <td>c</td>
+                    <td>Select</td>
+                    <td>Select</td>
+                    <td>Select</td>
+                    <td>Select</td>
+                    <td>Select</td>
+                    <td>Select</td>
+                    <td class="match-score">90</td>
+                </tr>
+                <tr>
+                    <td>c</td>
+                    <td>Select</td>
+                    <td>Select</td>
+                    <td>Select</td>
+                    <td>Select</td>
+                    <td>Select</td>
+                    <td>Select</td>
+                    <td class="match-score">90</td>
+                </tr>
+                <tr>
+                    <td>c</td>
+                    <td>Select</td>
+                    <td>Select</td>
+                    <td>Select</td>
+                    <td>Select</td>
+                    <td>Select</td>
+                    <td>Select</td>
+                    <td class="match-score">90</td>
+                </tr>
+                <tr>
+                    <td>c</td>
+                    <td>Select</td>
+                    <td>Select</td>
+                    <td>Select</td>
+                    <td>Select</td>
+                    <td>Select</td>
+                    <td>Select</td>
+                    <td class="match-score">90</td>
+                </tr>
+                <tr>
+                    <td>c</td>
+                    <td>Select</td>
+                    <td>Select</td>
+                    <td>Select</td>
+                    <td>Select</td>
+                    <td>Select</td>
+                    <td>Select</td>
+                    <td class="match-score">90</td>
+                </tr>
+                <tr>
+                    <td>c</td>
+                    <td>Select</td>
+                    <td>Select</td>
+                    <td>Select</td>
+                    <td>Select</td>
+                    <td>Select</td>
+                    <td>Select</td>
+                    <td class="match-score">90</td>
+                </tr>
+                <tr>
+                    <td>c</td>
+                    <td>Select</td>
+                    <td>Select</td>
+                    <td>Select</td>
+                    <td>Select</td>
+                    <td>Select</td>
+                    <td>Select</td>
+                    <td class="match-score">90</td>
+                </tr>
+
             </tbody>
         </table>
     </div>
+    <!-- Table Section -->
 
 </div>
 
 <!-- Add Job Modal -->
-<div id="addJobModal" class="modal">
-    <div class="modal-content">
+<div id="addJob-window" class="window">
+    <div class="window-content">
 
+        <!-- Add Job & Close Button -->
         <div class="items-container" style="margin-bottom: 50px;">
             <h3>Add New Job</h3>
-            <span class="close" onclick="closeModal()">
+            <span class="close" onclick="toggleWindow('addJob-window')">
                 <i class="fa-regular fa-circle-xmark"></i>
             </span>
         </div>
 
-        <form id="addJobForm">
-            <div class="form-group">
+        <form id="addJobForm" action="{{ url_for('add_job_submit') }}" method="post">
+            <div class="vertical-container" style="margin-bottom: 50px;">
+
+                <!-- Job Title -->
                 <label>Job Title *</label>
-                <input type="text" id="jobTitle" required>
-            </div>
-            <div class="form-group">
-                <label>Required Skills (comma-separated) *</label>
-                <textarea id="jobSkills" placeholder="e.g., Python, JavaScript, Machine Learning, SQL"
-                    required></textarea>
-            </div>
-            <div class="form-group">
+                <input type="text" name="job_title" placeholder="e.g., Software Engineer" required>
+
+                <!-- Skills Input -->
+                <label>Required Skills (type one then press enter) *</label>
+                <input type="text" id="skill-input" placeholder="e.g., Python">
+                <input type="hidden" name="skills" id="skills-hidden" />
+                <div style="min-height:14px">
+                    <p id="warning" style="transform-origin: left center;
+                                                       font-size: 12px;
+                                                       color: red;
+                                                       font-weight: bold;
+                                                       ">
+
+                    </p>
+                </div>
+
+                <div id="skills-container"></div>
+
+                <!-- Required Experience -->
                 <label>Required Experience (years) *</label>
                 <input type="number" id="jobExperience" required>
-            </div>
-            <div class="form-group">
-                <label>Required Education *</label>
+
+                <!-- Required Education -->
+                <label>Minimum Education *</label>
                 <input type="text" id="jobEducation" placeholder="e.g., Bachelor's in Computer Science">
             </div>
-            <button type="submit" style="width: 100%;">Add Job</button>
+            <button class="btn btn-green" type="submit" style="width: 100%;">Add Job</button>
         </form>
 
     </div>
@@ -369,7 +619,7 @@
 <!-- All Page-Specific JS Scripts Go Here -->
 {% block script %}
 
-<script src="{{ url_for('static', filename='js/utils.js') }}"></script>
+<script src="{{ url_for('static', filename='js/skills.js') }}"></script>
 
 <script>
     const clearSearchInputBtn = document.getElementById('clear_search_btn');
@@ -378,7 +628,7 @@
     // Search functionality
     function searchTable() {
         const searchTerm = searchInput.value.toLowerCase().trim();
-        const table = document.querySelector('table');
+        const table = document.getElementById('candidates-table');
         const tbody = table.querySelector('tbody');
         const rows = tbody.querySelectorAll('tr');
 
@@ -452,21 +702,6 @@
             if (!isNaN(score)) {
                 const ratio = Math.min(100, Math.max(0, score)) / 100;
 
-                const red = Math.floor(255 * (1 - ratio));
-                const green = Math.floor(255 * ratio);
-
-                cell.style.color = `rgb(${red}, ${green}, 0)`;
-            }
-        });
-    }
-    function setMatchScoreColors2() {
-        const scoreCells = document.querySelectorAll('.match-score');
-        scoreCells.forEach((cell) => {
-            const score = parseFloat(cell.textContent);
-
-            if (!isNaN(score)) {
-                const ratio = Math.min(100, Math.max(0, score)) / 100;
-
                 const red = Math.floor(255 * clamp(1 - ratio, 0, 0.45) * 2); // 0.5 to 1 maps to 255-0 red and 0 to 0.5 maps to 255 red
 
                 const green = Math.floor(255 * clamp(ratio, 0, 0.45) * 2); // 0 to 0.5 maps to 0-255 green and 0.5 to 1 maps to 255 green
@@ -489,7 +724,7 @@
         // Call searchTable on load to set initial button state
         searchTable();
 
-        setMatchScoreColors2();
+        setMatchScoreColors();
     });
 
     function toggleAll(source) {
@@ -520,7 +755,7 @@
 
 
 <script>
-    let currentJobId = null;
+    let selectedJobId = null;
     let currentCandidates = [];
     let sortDirection = {};
 
@@ -535,8 +770,13 @@
     });
 
     // Select a job
-    async function selectJob(jobId) {
-        currentJobId = jobId;
+    async function selectJob(newSelectedJobId) {
+
+        // Do Nothing If The Selected Job Card Is Reselected.
+        if (selectedJobId === newSelectedJobId)
+            return;
+
+        selectedJobId = newSelectedJobId;
 
         // Update active state in UI
         document.querySelectorAll('.job-card').forEach(card => {
@@ -549,11 +789,34 @@
         document.getElementById('selectedJobTitle').innerText = jobTitle;
 
         // Load candidates for this job
-        await loadCandidates(jobId);
+        await loadCandidates(selectedJobId);
     }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
     // Load candidates for selected job
     async function loadCandidates(jobId) {
+
+
+
+
         try {
             const response = await fetch(`/api/jobs/${jobId}/candidates`);
             const candidates = await response.json();
@@ -597,7 +860,7 @@
     async function handleResumeUpload(event) {
         const files = event.target.files;
 
-        if (!currentJobId) {
+        if (!selectedJobId) {
             alert('Please select a job first');
             return;
         }
@@ -608,7 +871,7 @@
         for (let file of files) {
             formData.append('resumes', file);
         }
-        formData.append('job_id', currentJobId);
+        formData.append('job_id', selectedJobId);
 
         // Show loading state
         document.getElementById('candidatesTableBody').innerHTML =
@@ -624,7 +887,7 @@
 
             if (result.success) {
                 // Reload candidates
-                await loadCandidates(currentJobId);
+                await loadCandidates(selectedJobId);
                 // Reload jobs to update candidate counts
                 await loadJobs();
                 alert(`Successfully processed ${result.processed} resumes`);
@@ -710,15 +973,6 @@
         });
 
         displayCandidates(sortedCandidates);
-    }
-
-    // Modal functions
-    function showAddJobModal() {
-        document.getElementById('addJobModal').style.display = 'block';
-    }
-
-    function closeModal() {
-        document.getElementById('addJobModal').style.display = 'none';
     }
 
     // Close modal when clicking outside

@@ -13,56 +13,6 @@
         margin: 0 auto;
     }
 
-    h1 {
-        text-align: center;
-        padding: 15px;
-    }
-
-    h2 {
-        text-align: center;
-        margin: 10px;
-    }
-
-    p {
-        text-align: center;
-        margin: 20px;
-    }
-
-    .added-skill {
-        background-color: transparent;
-        border-radius: 9999px;
-        border-color: #006ee4;
-        padding: 10px;
-        margin: 4px;
-        font-weight: bold;
-
-        display: inline-block;
-        /* Ens proper spacing */
-        position: relative;
-        /* For positioning the pseudo-element */
-    }
-
-    .added-skill:hover {
-        color: rgb(72, 0, 0);
-        border-color: red;
-        transition: 0.3s ease;
-    }
-
-    /* Add X on hover */
-    .added-skill:hover::after {
-        content: "✕";
-        /* The X symbol */
-        position: absolute;
-        left: 50%;
-        /* Position from left edge */
-        top: 50%;
-        transform: translate(-50%,
-                -50%);
-        /* Center both horizontally and vertically */
-        color: rgba(255, 0, 0, 0.1);
-        font-weight: bold;
-        font-size: 40px;
-    }
 
     select {
         width: 100%;
@@ -76,8 +26,7 @@
     }
 </style>
 
-<link rel="stylesheet" href="{{ url_for('static', filename='css/input_type_text.css') }}" />
-<link rel="stylesheet" href="{{ url_for('static', filename='css/button_type_submit.css') }}" />
+
 {% endblock style %}
 
 {% block body %}
@@ -105,13 +54,7 @@
                     'Please enter a single word without spaces',
                 )
             " oninput="this.setCustomValidity('')" />
-        <p id="space-warning" style="
-                color: red;
-                display: block;
-                font-size: 12px;
-                margin: 0;
-                text-align: left;
-            "></p>
+
         <div id="skills-container"></div>
 
         <input type="hidden" name="skills" id="skills-hidden" />

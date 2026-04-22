@@ -1,3 +1,5 @@
+// region TEXT INPUT
+
 function emptyTextInput(inputElement)
 {
     if (inputElement & inputElement.value !== undefined)
@@ -32,3 +34,47 @@ function emptyMultipleInputs(...inputElements)
         }
     });
 }
+
+// endregion
+////////////////////////////////////////////////////////////////////////////////////////////
+
+////////////////////////////////////////////////////////////////////////////////////////////
+// region WINDOWS
+
+function toggleWindow(elementID)
+{
+    const windowElement = document.getElementById(elementID);
+
+    if (windowElement)
+    {
+        if (windowElement.style.display === 'block')
+        {
+            windowElement.style.display = 'none';
+        } else
+        {
+            windowElement.style.display = 'block';
+        }
+    }
+}
+
+function closeWindow(elementID)
+{
+    const windowElement = document.getElementById(elementID);
+
+    if (windowElement)
+    {
+        windowElement.style.display = 'none';
+    }
+}
+
+function openWindow(elementID)
+{
+    const windowElement = document.getElementById(elementID);
+
+    if (windowElement)
+    {
+        windowElement.style.display = 'block';
+    }
+}
+
+// endregion
