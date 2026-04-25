@@ -6,6 +6,7 @@ import sqlite3, os
 from typing import Any
 
 # Local imports
+from .job import Job
 
 
 # endregion
@@ -17,6 +18,8 @@ from typing import Any
 
 class Database:
     """Database Class To Handle All Database Operations"""
+
+    # region SQL methods
 
     # Get database path (relative to this file)
     __db_path = os.path.join(
@@ -50,7 +53,7 @@ class Database:
                     user_name TEXT UNIQUE NOT NULL,
                     email TEXT UNIQUE NOT NULL,
                     password_hash TEXT NOT NULL,
-                    company_name TEXT,
+                    company_name TEXT NOT NULL,
                     
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                     is_active INTEGER DEFAULT 1,
@@ -90,10 +93,12 @@ class Database:
                 """
                 CREATE TABLE IF NOT EXISTS jobs (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    
                     user_id INTEGER NOT NULL,
-                    title TEXT UNIQUE NOT NULL,
-                    min_edu TEXT,
-                    min_exp INTEGER,
+                    title TEXT NOT NULL,
+                    min_edu TEXT NOT NULL,
+                    min_years_exp INTEGER NOT NULL,
+
                     min_edu_weight INTEGER DEFAULT 1,
                     min_exp_weight INTEGER DEFAULT 1,
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -108,9 +113,11 @@ class Database:
                 """
                 CREATE TABLE IF NOT EXISTS job_skills (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    
                     job_id INTEGER NOT NULL,
-                    skill_name TEXT NOT NULL,
+                    name TEXT NOT NULL,
                     weight INTEGER DEFAULT 1,
+                    
                     FOREIGN KEY (job_id) REFERENCES jobs(id) ON DELETE CASCADE
                 )
             """
@@ -189,7 +196,7 @@ class Database:
                 "CREATE INDEX IF NOT EXISTS idx_job_skills_job_id ON job_skills(job_id)"
             )
             conn.execute(
-                "CREATE INDEX IF NOT EXISTS idx_job_skills_name ON job_skills(skill_name)"
+                "CREATE INDEX IF NOT EXISTS idx_job_skills_name ON job_skills(name)"
             )
 
             # Candidates indexes
@@ -225,12 +232,55 @@ class Database:
             # Return first result as dict or None if no result
 
     @classmethod
-    def execute_set(cls, query: str, params=()) -> int:
-        """Execute a custom query (UPDATE/INSERT) and return number of affected rows"""
+    def execute_set(cls, query: str, params=()) -> int | None:
+        """Execute INSERT/UPDATE/DELETE query.
+
+        Returns:
+            - For INSERT: The last inserted row ID (cursor.lastrowid).
+            - For UPDATE/DELETE: Number of affected rows (cursor.rowcount)
+        """
+
         with cls.__get_db() as conn:
             cursor = conn.execute(query, params)
             conn.commit()
-            return cursor.rowcount  # Return number of affected rows
+
+            # Check query type to determine what to return
+            query_type = query.strip().upper().split()[0]
+
+            if query_type == "INSERT":
+                if cursor.lastrowid is None:
+                    raise ValueError("INSERT operation failed to return a row ID")
+                return cursor.lastrowid
+            else:  # UPDATE, DELETE, REPLACE, etc.
+                return cursor.rowcount  # Return number of affected rows
+
+    # @classmethod
+    # def execute(cls, query:str, params=()) -> sqlite3.Cursor:
+    #     with cls.__get_db() as conn:
+    #         cursor = conn.execute(query, params)
+
+    @classmethod
+    def begin_transaction(cls):
+        """Start a manual transaction"""
+        conn = cls.__get_db()
+        conn.execute("BEGIN TRANSACTION")
+        return conn
+
+    @classmethod
+    def commit_transaction(cls, conn):
+        """Commit a transaction"""
+        if conn:
+            conn.commit()
+            conn.close()
+
+    @classmethod
+    def rollback_transaction(cls, conn):
+        """Rollback a transaction"""
+        if conn:
+            conn.rollback()
+            conn.close()
+
+    # endregion
 
     # region USER QUERIES
 
@@ -248,12 +298,12 @@ class Database:
                 (user_id,),
             )
 
-            if affected_rows_count > 0:
-                return True
-            else:
+            if not affected_rows_count or affected_rows_count == 0:
                 # User with this ID doesn't exist
                 print(f"Warning: No user found with id {user_id}")
                 return False
+            else:
+                return True
 
         except Exception as e:
             print(f"Error updating last_login for user {user_id}: {e}")
@@ -275,7 +325,7 @@ class Database:
         )
 
     @classmethod
-    def SELECT_user_BY_id(cls, user_id: int) -> dict[str, Any] | None:
+    def SELECT_user(cls, user_id: int) -> dict[str, Any] | None:
         """Get User By ID, And Return User Data If Found"""
 
         return cls.execute_select_one(
@@ -297,7 +347,7 @@ class Database:
     ) -> tuple[bool, str]:
         """Add A New User To The users Table And Returns True If Added Successfully."""
         try:
-            affected_rows_count = cls.execute_set(
+            cls.execute_set(
                 """
                 INSERT INTO users
                 (user_name, email, password_hash, company_name)
@@ -306,13 +356,10 @@ class Database:
                 (user_name, email, password_hash, company_name),
             )
 
-            return (
-                (True, "User created successfully")
-                if affected_rows_count > 0
-                else (False, "Insertion Failed")
-            )
+            return (True, "User Created Successfully!")
+
+        # Handle UNIQUE Constraint Violations
         except sqlite3.IntegrityError as e:
-            # Handle unique constraint violations
             error_msg = str(e)
             if "user_name" in error_msg or "users.user_name" in error_msg:
                 return (
@@ -325,29 +372,85 @@ class Database:
                     f"Email '{email}' is already registered. Please use a different email address or log in.",
                 )
             else:
-                return False, f"Database integrity error: {error_msg}"
+                return False, f"Database Integrity Error: {error_msg}"
+
         except Exception as e:
             # Handle any other unexpected errors
-            return False, f"An unexpected error occurred: {str(e)}"
+            return False, f"An Unexpected Error Occurred: {str(e)}"
 
     # endregion
     # region JOB QUERIES
 
     @classmethod
-    def INSERT_job(
-        cls, user_id, title, min_edu, min_exp, min_edu_weight=1, min_exp_weight=1
-    ) -> bool:
+    def INSERT_job(cls, job: Job) -> tuple[bool, str]:
         """Add A New Job To The jobs Table And Returns True If Added Successfully."""
 
-        affected_rows_num = cls.execute_set(
+        conn = None
+        try:
+            # Start transaction
+            conn = cls.begin_transaction()
+            cursor = conn.cursor()
+
+            # Insert job
+            cursor.execute(
+                """
+                INSERT INTO jobs
+                (user_id, title, min_edu, min_years_exp, min_edu_weight, min_exp_weight)
+                VALUES (?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    job.user_id,
+                    job.job_title,
+                    job.min_edu,
+                    job.min_years_exp,
+                    job.min_edu_weight,
+                    job.min_exp_weight,
+                ),
+            )
+
+            job_id = cursor.lastrowid
+            if not job_id:
+                cls.rollback_transaction(conn)
+                return False, "Error Getting Job ID After Insertion"
+
+            # Insert skills
+            for skill_name, skill_weight in job.skill_name_weight.items():
+                cursor.execute(
+                    """
+                    INSERT INTO job_skills
+                    (job_id, name, weight)
+                    VALUES (?, ?, ?)
+                    """,
+                    (job_id, skill_name, skill_weight),
+                )
+
+            # Commit all changes
+            cls.commit_transaction(conn)
+            return True, "Job Created Successfully!"
+
+        except sqlite3.IntegrityError as e:
+            if conn:
+                cls.rollback_transaction(conn)
+            error_msg = str(e)
+            if "title" in error_msg:
+                return False, f"Title '{job.job_title}' Is Already Taken."
+            return False, f"Database Integrity Error: {error_msg}"
+
+        except Exception as e:
+            if conn:
+                cls.rollback_transaction(conn)
+            return False, f"Unexpected Error: {str(e)}"
+
+    @classmethod
+    def SELECT_jobs(cls, user_id):
+
+        return cls.execute_select(
             """
-            INSERT INTO jobs
-            (user_id, title, min_edu, min_exp, min_edu_weight, min_exp_weight)
-            VALUES (?, ?, ?, ?, ?, ?)
+            SELECT * FROM jobs
+            WHERE user_id = ?
             """,
-            (user_id, title, min_edu, min_exp, min_edu_weight, min_exp_weight),
+            (user_id,),
         )
-        return affected_rows_num > 0
 
     # endregion
 

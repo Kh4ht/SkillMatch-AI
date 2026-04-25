@@ -46,8 +46,9 @@
             <ul class="nav-menu">
                 <li><a href="{{ url_for('index') }}" {% if request.endpoint=='index' %}class="active" {% endif %}><i
                             class="fa-solid fa-house"></i> Home</a></li>
-                <li><a href="{{ url_for('parse_resumes_page') }}" {% if request.endpoint=='parse_resumes_page'
-                        %}class="active" {% endif %}><i class="fa-solid fa-file"></i> Parse Resumes</a></li>
+                <li><a href="{{ url_for('parse_resumes.parse_resumes_page') }}" {% if
+                        request.endpoint=='parse_resumes.parse_resumes_page' %}class="active" {% endif %}><i
+                            class="fa-solid fa-file"></i> Parse Resumes</a></li>
             </ul>
 
             <!-- Right-side account menu -->
@@ -69,16 +70,16 @@
                         <i class="fas fa-chevron-down dropdown-icon"></i>
                     </button>
                     <div class="dropdown-content">
-                        <a href="{{ url_for('auth.profile') }}">
+                        <a href="{{ url_for('auth.profile_page') }}">
                             <i class="fas fa-user-circle"></i>
                             <span>My Profile</span>
                         </a>
-                        <a href="{{ url_for('auth.settings') }}">
+                        <a href="{{ url_for('auth.settings_page') }}">
                             <i class="fas fa-cog"></i>
                             <span>Settings</span>
                         </a>
                         <div class="dropdown-divider"></div>
-                        <a href="{{ url_for('auth.logout') }}" class="logout-link">
+                        <a href="{{ url_for('auth.logout_submit') }}" class="logout-link">
                             <i class="fas fa-sign-out-alt"></i>
                             <span>Logout</span>
                         </a>
@@ -110,7 +111,7 @@
                     {% elif category == 'warning' %}
                     <i class="fa-solid fa-triangle-exclamation"></i>
                     {% else %}
-                    ℹ
+                    <i class="fa-solid fa-info"></i>
                     {% endif %}
                 </span>
                 <span class="flash-text">{{ message }}</span>

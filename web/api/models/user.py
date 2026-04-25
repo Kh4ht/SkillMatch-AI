@@ -7,6 +7,7 @@ import re
 from werkzeug.security import generate_password_hash, check_password_hash
 
 # Local imports
+from .job import Job
 from .database import Database
 
 
@@ -14,7 +15,7 @@ from .database import Database
 # #####################################################################
 
 # #####################################################################
-# region USER
+# region User Class
 
 
 class User(UserMixin):
@@ -97,13 +98,15 @@ class User(UserMixin):
         )
 
     # region JOBS
-    def add_job(self, job_title: str, job_skills: tuple, job_min_education: str):
+
+    @staticmethod
+    def add_job(job: Job) -> tuple[bool, str]:
         """Add a new job for the user"""
-        try:
-            # Database.INSERT_job(current_user.id, job_title, job_min_education)
-            return True
-        except Exception as e:
-            return False, f"Error adding job: {str(e)}"
+
+        if not job.skill_name_weight:
+            return False, "At Least One Skill Is Required For The Job"
+
+        return Database.INSERT_job(job=job)
 
     # endregion
 

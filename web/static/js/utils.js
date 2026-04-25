@@ -1,44 +1,3 @@
-// region TEXT INPUT
-
-function emptyTextInput(inputElement)
-{
-    if (inputElement & inputElement.value !== undefined)
-    {
-        inputElement.value = '';
-    } else
-    {
-        console.error('Invalid input element provided !');
-    }
-}
-
-function emptyTextInputById(inputId)
-{
-    const inputElement = document.getElementById(inputId);
-
-    if (inputElement)
-    {
-        inputElement.value = '';
-    } else
-    {
-        console.error(`Input element with ID ${inputId} not found`);
-    }
-}
-
-function emptyMultipleInputs(...inputElements)
-{
-    inputElements.forEach(input =>
-    {
-        if (input && input.value !== undefined)
-        {
-            input.value = '';
-        }
-    });
-}
-
-// endregion
-////////////////////////////////////////////////////////////////////////////////////////////
-
-////////////////////////////////////////////////////////////////////////////////////////////
 // region WINDOWS
 
 function toggleWindow(elementID)
@@ -75,6 +34,31 @@ function openWindow(elementID)
     {
         windowElement.style.display = 'block';
     }
+}
+
+// endregion
+////////////////////////////////////////////////////////////////////////////////////////////
+
+////////////////////////////////////////////////////////////////////////////////////////////
+// region escapeHtml
+
+// Helper function to escape HTML, for user inputs.
+function escapeHtml(text)
+{
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+// endregion
+////////////////////////////////////////////////////////////////////////////////////////////
+
+////////////////////////////////////////////////////////////////////////////////////////////
+// region clamp
+
+function clamp(value, min, max)
+{
+    return Math.min(Math.max(value, min), max);
 }
 
 // endregion

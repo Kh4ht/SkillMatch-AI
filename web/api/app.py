@@ -14,7 +14,7 @@ from models.extractors import extract_text_as_str
 
 # Import blueprints
 from auth import auth_bp
-
+from parse_resumes import parse_resumes_bp
 
 # endregion
 # #####################################################################
@@ -49,6 +49,7 @@ def create_app():
 
     # Register Blueprints
     app.register_blueprint(auth_bp)
+    app.register_blueprint(parse_resumes_bp)
 
     return app
 
@@ -79,7 +80,7 @@ login_manager.login_message_category = "info"
 @login_manager.user_loader
 def load_user(user_id):
 
-    user_data = Database.SELECT_user_BY_id(user_id=user_id)
+    user_data = Database.SELECT_user(user_id)
 
     if user_data:
         return User(
@@ -104,32 +105,6 @@ def load_user(user_id):
 @app.route("/")
 def index():
     return render_template("index.html")
-
-
-# endregion
-# #####################################################################
-
-# #####################################################################
-# region PARSE RESUMES
-
-
-@app.route("/parse_resumes")
-@login_required
-def parse_resumes_page():
-    return render_template("parse_resumes.html")
-
-
-# endregion
-# #####################################################################
-
-# #####################################################################
-# region RESULTS
-
-
-@app.route("/results")
-def results():
-    candidates = Database.execute_select("SELECT * FROM candidates")
-    return render_template("results.html", candidates=candidates)
 
 
 # endregion
@@ -173,31 +148,6 @@ def upload():
             print("error extracting text from:", r.filename)
 
     return redirect("/")
-
-
-# endregion
-# #####################################################################
-
-# #####################################################################
-# region ADD JOB SUBMIT
-
-
-@app.route("/add_job", methods=["POST"])
-def add_job_submit():
-    job_title = request.form.get("job_title")
-    required_skills = request.form.get("required_skills")
-    min_education = request.form.get("min_education")
-
-    if not job_title or not required_skills or not min_education:
-        flash("All fields are required to add a job", "error")
-        return redirect("/parse_resumes")
-
-    Database.execute_set(
-        "INSERT INTO jobs (title, required_skills, min_education) VALUES (?, ?, ?)",
-        (job_title, required_skills, min_education),
-    )
-    flash(f"Job '{job_title}' added successfully!", "success")
-    return redirect("/parse_resumes")
 
 
 # endregion

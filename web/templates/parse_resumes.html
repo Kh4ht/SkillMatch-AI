@@ -199,60 +199,16 @@
 
     <div class="horizontal-container">
         <!-- Jobs will be loaded here dynamically -->
-        <div id="0" class="job-card" onclick="selectJob('0')">
-            item 1 item 1i
+        {% if not jobs %}
+        <div class="job-card">
+            Add A New Job To Start
         </div>
-        <div id="1" class="job-card" onclick="selectJob('1')">
-            item 2
+        {% endif %}
+        {% for job in jobs %}
+        <div id="{{ job['id'] }}" class="job-card" onclick='selectJob("{{ job[' id']}}")'>
+            {{ job["title"] }}
         </div>
-        <div id="2" class="job-card" onclick="selectJob('2')">
-            item 3
-        </div>
-        <div id="3" class="job-card" onclick="selectJob('3')">
-            item 4
-        </div>
-        <div id="4" class="job-card" onclick="selectJob('4')">
-            item 5
-        </div>
-        <div id="5" class="job-card" onclick="selectJob('5')">
-            item 6
-        </div>
-        <div id="0" class="job-card" onclick="selectJob('0')">
-            item 1 item 1i
-        </div>
-        <div id="1" class="job-card" onclick="selectJob('1')">
-            item 2
-        </div>
-        <div id="2" class="job-card" onclick="selectJob('2')">
-            item 3
-        </div>
-        <div id="3" class="job-card" onclick="selectJob('3')">
-            item 4
-        </div>
-        <div id="4" class="job-card" onclick="selectJob('4')">
-            item 5
-        </div>
-        <div id="5" class="job-card" onclick="selectJob('5')">
-            item 6
-        </div>
-        <div id="0" class="job-card" onclick="selectJob('0')">
-            item 1 item 1i
-        </div>
-        <div id="1" class="job-card" onclick="selectJob('1')">
-            item 2
-        </div>
-        <div id="2" class="job-card" onclick="selectJob('2')">
-            item 3
-        </div>
-        <div id="3" class="job-card" onclick="selectJob('3')">
-            item 4
-        </div>
-        <div id="4" class="job-card" onclick="selectJob('4')">
-            item 5
-        </div>
-        <div id="5" class="job-card" onclick="selectJob('5')">
-            item 6
-        </div>
+        {% endfor %}
     </div>
 
 </div>
@@ -294,7 +250,8 @@
     <div class="items-container" style="margin-bottom: 30px;">
         <i class="fa-solid fa-magnifying-glass"></i>
         <input type="text" style="width: 100%;" id="search_txt_input" placeholder="Search Table . . ." />
-        <button class="btn btn-green" title="Clear Search Input" id="clear_search_btn" disabled>
+        <button class="btn btn-green" title="Clear Search Input" id="clear_search_btn" onclick="clearSearchInput()"
+            disabled>
             Clear
         </button>
     </div>
@@ -565,7 +522,7 @@
 
 </div>
 
-<!-- Add Job Modal -->
+<!-- Add Job Window -->
 <div id="addJob-window" class="window">
     <div class="window-content">
 
@@ -577,8 +534,8 @@
             </span>
         </div>
 
-        <form id="addJobForm" action="{{ url_for('add_job_submit') }}" method="post">
-            <div class="vertical-container" style="margin-bottom: 50px;">
+        <form id="addJobForm" action="{{ url_for('parse_resumes.add_job_submit') }}" method="post">
+            <div class="vertical-container" style="margin-bottom: 50px; overflow: hidden;">
 
                 <!-- Job Title -->
                 <label>Job Title *</label>
@@ -587,7 +544,7 @@
                 <!-- Skills Input -->
                 <label>Required Skills (type one then press enter) *</label>
                 <input type="text" id="skill-input" placeholder="e.g., Python">
-                <input type="hidden" name="skills" id="skills-hidden" />
+                <input type="hidden" name="required_skills" id="skills-hidden" />
                 <div style="min-height:14px">
                     <p id="warning" style="transform-origin: left center;
                                                        font-size: 12px;
@@ -602,11 +559,11 @@
 
                 <!-- Required Experience -->
                 <label>Required Experience (years) *</label>
-                <input type="number" id="jobExperience" required>
+                <input type="number" name="min_years_exp" id="jobExperience" value="0" min="0" required>
 
                 <!-- Required Education -->
                 <label>Minimum Education *</label>
-                <input type="text" id="jobEducation" placeholder="e.g., Bachelor's in Computer Science">
+                <input type="text" name="min_edu" id="min_edu" placeholder="e.g., Bachelor's in Computer Science">
             </div>
             <button class="btn btn-green" type="submit" style="width: 100%;">Add Job</button>
         </form>
@@ -624,19 +581,49 @@
 <script>
     const clearSearchInputBtn = document.getElementById('clear_search_btn');
     const searchInput = document.getElementById('search_txt_input');
+    const candidatesTable = document.getElementById('candidates-table');
 
-    // Search functionality
+    // Add event listeners when page loads
+    document.addEventListener('DOMContentLoaded', function () {
+        // Search as you type
+        searchInput.addEventListener('input', searchTable);
+
+        // Call searchTable on load to set initial button state
+        searchTable();
+
+        setMatchScoreColors();
+    });
+
+
+    function setMatchScoreColors() {
+        const scoreCells = document.querySelectorAll('.match-score');
+        scoreCells.forEach((cell) => {
+            const score = parseFloat(cell.textContent);
+
+            if (!isNaN(score)) {
+                const ratio = Math.min(100, Math.max(0, score)) / 100;
+
+                const red = Math.floor(255 * clamp(1 - ratio, 0, 0.45) * 2); // 0.5 to 1 maps to 255-0 red and 0 to 0.5 maps to 255 red
+
+                const green = Math.floor(255 * clamp(ratio, 0, 0.45) * 2); // 0 to 0.5 maps to 0-255 green and 0.5 to 1 maps to 255 green
+
+                cell.style.color = `rgb(${red}, ${green}, 0)`;
+            }
+        });
+    }
+
     function searchTable() {
         const searchTerm = searchInput.value.toLowerCase().trim();
-        const table = document.getElementById('candidates-table');
-        const tbody = table.querySelector('tbody');
+        const tbody = candidatesTable.querySelector('tbody');
         const rows = tbody.querySelectorAll('tr');
+        let selectedJobId = null;
 
         let hasMatches = false;
 
         rows.forEach((row) => {
             // Skip the "no results" row
-            if (row.id === 'noResultsRow') return;
+            if (row.id === 'noResultsRow')
+                return;
 
             // Get all text content from the row (excluding the checkbox column)
             const cells = row.querySelectorAll('td:not(.checkbox-col)');
@@ -663,7 +650,6 @@
     }
 
     function showNoResultsMessage(show) {
-        const table = document.querySelector('table');
         let noResultsRow = document.getElementById('noResultsRow');
 
         if (show) {
@@ -675,7 +661,7 @@
                     `<td colspan="${colspan}" style="text-align: center; padding: 40px;">
                         No matching candidates found
                     </td>`;
-                table.querySelector('tbody').appendChild(noResultsRow);
+                candidatesTable.querySelector('tbody').appendChild(noResultsRow);
             } else {
                 noResultsRow.style.display = '';
             }
@@ -690,87 +676,7 @@
         searchInput.focus();
     }
 
-    function clamp(value, min, max) {
-        return Math.min(Math.max(value, min), max);
-    }
-
-    function setMatchScoreColors() {
-        const scoreCells = document.querySelectorAll('.match-score');
-        scoreCells.forEach((cell) => {
-            const score = parseFloat(cell.textContent);
-
-            if (!isNaN(score)) {
-                const ratio = Math.min(100, Math.max(0, score)) / 100;
-
-                const red = Math.floor(255 * clamp(1 - ratio, 0, 0.45) * 2); // 0.5 to 1 maps to 255-0 red and 0 to 0.5 maps to 255 red
-
-                const green = Math.floor(255 * clamp(ratio, 0, 0.45) * 2); // 0 to 0.5 maps to 0-255 green and 0.5 to 1 maps to 255 green
-
-                cell.style.color = `rgb(${red}, ${green}, 0)`;
-            }
-        });
-    }
-
-    // Add event listeners when page loads
-    document.addEventListener('DOMContentLoaded', function () {
-        // Search as you type
-        searchInput.addEventListener('input', searchTable);
-
-        // Clear button handler
-        if (clearSearchInputBtn) {
-            clearSearchInputBtn.addEventListener('click', clearSearchInput);
-        }
-
-        // Call searchTable on load to set initial button state
-        searchTable();
-
-        setMatchScoreColors();
-    });
-
-    function toggleAll(source) {
-        const checkboxes = document.querySelectorAll(
-            'input[name="selected_candidates"]',
-        );
-        checkboxes.forEach((checkbox) => (checkbox.checked = source.checked));
-        updateDeleteButton();
-    }
-
-    function updateDeleteButton() {
-        const checkboxes = document.querySelectorAll(
-            'input[name="selected_candidates"]:checked',
-        );
-        const deleteBtn = document.getElementById('deleteSelected');
-        deleteBtn.disabled = checkboxes.length === 0;
-    }
-
-    function deleteSelectedRows() {
-        if (
-            confirm('Are you sure you want to delete the selected candidates?')
-        ) {
-            document.getElementById('deleteForm').submit();
-        }
-    }
-</script>
-
-
-
-<script>
-    let selectedJobId = null;
-    let currentCandidates = [];
-    let sortDirection = {};
-
-    // Load jobs on page load
-    document.addEventListener('DOMContentLoaded', function () {
-
-        // Handle resume upload
-        document.getElementById('resumeUpload').addEventListener('change', handleResumeUpload);
-
-        // Handle add job form submission
-        document.getElementById('addJobForm').addEventListener('submit', addNewJob);
-    });
-
-    // Select a job
-    async function selectJob(newSelectedJobId) {
+    function selectJob(newSelectedJobId) {
 
         // Do Nothing If The Selected Job Card Is Reselected.
         if (selectedJobId === newSelectedJobId)
@@ -783,211 +689,6 @@
             card.classList.remove('active');
         });
         event.currentTarget.classList.add('active');
-
-        // Update selected job title
-        const jobTitle = event.currentTarget.querySelector('.job-title').innerText;
-        document.getElementById('selectedJobTitle').innerText = jobTitle;
-
-        // Load candidates for this job
-        await loadCandidates(selectedJobId);
-    }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    // Load candidates for selected job
-    async function loadCandidates(jobId) {
-
-
-
-
-        try {
-            const response = await fetch(`/api/jobs/${jobId}/candidates`);
-            const candidates = await response.json();
-            currentCandidates = candidates;
-            displayCandidates(candidates);
-        } catch (error) {
-            console.error('Error loading candidates:', error);
-            document.getElementById('candidatesTableBody').innerHTML =
-                '<tr><td colspan="6" class="no-data">Error loading candidates</td></tr>';
-        }
-    }
-
-    // Display candidates in table
-    function displayCandidates(candidates) {
-        const tbody = document.getElementById('candidatesTableBody');
-
-        if (!candidates || candidates.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="6" class="no-data">No candidates found. Upload resumes to see matches.</td></tr>';
-            return;
-        }
-
-        tbody.innerHTML = candidates.map(candidate => {
-            let scoreClass = 'score-low';
-            if (candidate.match_score >= 70) scoreClass = 'score-high';
-            else if (candidate.match_score >= 40) scoreClass = 'score-medium';
-
-            return `
-                <tr>
-                    <td>${escapeHtml(candidate.name)}</td>
-                    <td>${escapeHtml(candidate.email)}</td>
-                    <td>${candidate.skills.map(s => `<span class="skill-tag">${escapeHtml(s)}</span>`).join(' ')}</td>
-                    <td>${candidate.experience} years</td>
-                    <td><span class="match-score ${scoreClass}">${candidate.match_score}%</span></td>
-                    <td><button class="view-resume-btn" onclick="viewResume('${candidate.id}')">View Resume</button></td>
-                </tr>
-            `;
-        }).join('');
-    }
-
-    // Handle resume upload
-    async function handleResumeUpload(event) {
-        const files = event.target.files;
-
-        if (!selectedJobId) {
-            alert('Please select a job first');
-            return;
-        }
-
-        if (files.length === 0) return;
-
-        const formData = new FormData();
-        for (let file of files) {
-            formData.append('resumes', file);
-        }
-        formData.append('job_id', selectedJobId);
-
-        // Show loading state
-        document.getElementById('candidatesTableBody').innerHTML =
-            '<tr><td colspan="6" class="loading">Processing resumes...</td></tr>';
-
-        try {
-            const response = await fetch('/api/upload_resumes', {
-                method: 'POST',
-                body: formData
-            });
-
-            const result = await response.json();
-
-            if (result.success) {
-                // Reload candidates
-                await loadCandidates(selectedJobId);
-                // Reload jobs to update candidate counts
-                await loadJobs();
-                alert(`Successfully processed ${result.processed} resumes`);
-            } else {
-                alert('Error processing resumes: ' + result.error);
-            }
-        } catch (error) {
-            console.error('Error uploading resumes:', error);
-            alert('Error uploading resumes');
-        }
-
-        // Clear file input
-        event.target.value = '';
-    }
-
-    // Add new job
-    async function addNewJob(event) {
-        event.preventDefault();
-
-        const jobData = {
-            title: document.getElementById('jobTitle').value,
-            skills: document.getElementById('jobSkills').value.split(',').map(s => s.trim()),
-            experience_years: parseInt(document.getElementById('jobExperience').value),
-            education: document.getElementById('jobEducation').value
-        };
-
-        try {
-            const response = await fetch('/api/jobs', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(jobData)
-            });
-
-            const result = await response.json();
-
-            if (result.success) {
-                closeModal();
-                document.getElementById('addJobForm').reset();
-                await loadJobs();
-                alert('Job added successfully');
-            } else {
-                alert('Error adding job: ' + result.error);
-            }
-        } catch (error) {
-            console.error('Error adding job:', error);
-            alert('Error adding job');
-        }
-    }
-
-    // View resume
-    function viewResume(candidateId) {
-        // Implement resume viewing logic
-        window.open(`/api/resumes/${candidateId}`, '_blank');
-    }
-
-    // Sort table
-    function sortTable(column) {
-        if (!sortDirection[column]) {
-            sortDirection[column] = 'asc';
-        } else {
-            sortDirection[column] = sortDirection[column] === 'asc' ? 'desc' : 'asc';
-        }
-
-        const sortedCandidates = [...currentCandidates].sort((a, b) => {
-            let aVal = a[column];
-            let bVal = b[column];
-
-            if (column === 'matchScore') {
-                aVal = a.match_score;
-                bVal = b.match_score;
-            } else if (column === 'skills') {
-                aVal = a.skills.length;
-                bVal = b.skills.length;
-            }
-
-            if (sortDirection[column] === 'asc') {
-                return aVal > bVal ? 1 : -1;
-            } else {
-                return aVal < bVal ? 1 : -1;
-            }
-        });
-
-        displayCandidates(sortedCandidates);
-    }
-
-    // Close modal when clicking outside
-    window.onclick = function (event) {
-        const modal = document.getElementById('addJobModal');
-        if (event.target === modal) {
-            closeModal();
-        }
-    }
-
-    // Helper function to escape HTML
-    function escapeHtml(text) {
-        const div = document.createElement('div');
-        div.textContent = text;
-        return div.innerHTML;
     }
 </script>
 
