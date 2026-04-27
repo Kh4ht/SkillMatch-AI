@@ -494,6 +494,54 @@ class Database:
 
         return result
 
+    @classmethod
+    def SELECT_job(cls, user_id: int, job_id: int) -> Job | None:
+
+        job_data = cls.execute_select_one(
+            f"""
+            SELECT * FROM {JobsCol.TABLE_NAME}
+            WHERE {JobsCol.USER_ID} = ? AND {JobsCol.ID} = ?
+            """,
+            (user_id, job_id),
+        )
+
+        if not job_data:
+            return None
+
+        skill_name_weight: dict[str, int] = {}
+
+        job_skills = cls.SELECT_job_skills(job_data[JobsCol.ID])
+
+        for skill in job_skills:
+            skill_name_weight[skill.name] = skill.weight
+
+        return Job(
+            id=job_data[JobsCol.ID],
+            user_id=job_data[JobsCol.USER_ID],
+            job_title=job_data[JobsCol.TITLE],
+            min_edu=job_data[JobsCol.MIN_EDU],
+            min_years_exp=job_data[JobsCol.MIN_YEARS_EXP],
+            skill_name_weight=skill_name_weight,
+        )
+
+    @classmethod
+    def DELETE_job(cls, user_id: int, job_id: int) -> tuple[bool, str]:
+        """Delete a job and all related data for a specific user"""
+        try:
+            # Delete the job
+            affected_rows = cls.execute_set(
+                f"DELETE FROM {JobsCol.TABLE_NAME} WHERE {JobsCol.ID} = ? AND {JobsCol.USER_ID} = ?",
+                (job_id, user_id),
+            )
+
+            if affected_rows and affected_rows > 0:
+                return True, "Job deleted successfully!"
+            else:
+                return False, "No job was deleted!"
+
+        except Exception as e:
+            return False, f"Unexpected Error While Deleting Job: {str(e)}"
+
     # endregion
 
 

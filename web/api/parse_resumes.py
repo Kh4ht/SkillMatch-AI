@@ -72,10 +72,32 @@ def add_job_submit():
 
     if success:
         flash(f"Job '{job_title}' added successfully!", "success")
-        return redirect("/parse_resumes")
     else:
         flash(error_msg, "error")
-        return redirect("/parse_resumes")
+
+    return redirect("/parse_resumes")
+
+
+# endregion
+# #####################################################################
+
+# #####################################################################
+# region DELETE JOB
+
+
+@parse_resumes_bp.route("/delete_job", methods=["POST"])
+@login_required
+def delete_job_submit():
+    job_id = request_form_get("job_id", strip=False)
+
+    success, error_msg = User.delete_job(job_id=job_id)
+
+    if success:
+        flash(error_msg, "success")
+    else:
+        flash(error_msg, "error")
+
+    return redirect("/parse_resumes")
 
 
 # endregion

@@ -14,7 +14,7 @@
 <style>
     .edit-job-button {
         font-size: 20px;
-        color: rgba(255, 255, 255, 0.5);
+        color: rgba(255, 255, 255, 0.6);
         background: transparent;
         padding: 1px 10px;
         transition: all 0.2s ease;
@@ -73,7 +73,7 @@
         background: linear-gradient(135deg, rgba(0, 255, 64, 0.5) 0%, rgba(211, 255, 207, 0.5) 100%);
         border-radius: 16px;
         padding: 40px 20px;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+
 
         /* Text styling */
         color: rgb(16, 16, 16);
@@ -97,7 +97,7 @@
     /* Hover effect */
     .add-job-card:hover {
         transform: translateY(-5px);
-        box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+
     }
 
 
@@ -239,14 +239,18 @@
 
                 <div class="menu-content">
                     <a href="">
-                        <i class="fa-solid fa-pen"></i> Rename
-                    </a>
-                    <a href="">
                         <i class="fa-solid fa-pencil"></i> Edit
                     </a>
-                    <a href="" class="delete-option">
-                        <i class="fa-solid fa-trash"></i> Delete
-                    </a>
+
+                    <!-- Form for delete -->
+                    <form method="POST" action="{{ url_for('parse_resumes.delete_job_submit') }}"
+                        onsubmit="return confirm('Are you sure you want to delete ({{ job.job_title }}) job?\nDeleting this job will also delete its candidates.')">
+                        <input type="hidden" name="job_id" value="{{ job.id }}">
+                        <button type="submit">
+                            <i class="fa-solid fa-trash" style="color: #dc3545"></i>
+                            <span style="color: #dc3545">Delete</span>
+                        </button>
+                    </form>
                 </div>
             </div>
 
@@ -254,7 +258,7 @@
 
 
         {% endfor %}
-        <div class="add-job-card" onclick="openWindow('addJob-window')">
+        <div class="add-job-card" style="gap: 10px;" onclick="openWindow('addJob-window')">
             <i class="fa-solid fa-plus"></i> Add New Job
         </div>
     </div>
@@ -271,9 +275,6 @@
             <h3>
                 <i class="fa-solid fa-circle-info"></i> Job Details
             </h3>
-            <button class="btn">
-                <i class="fa-solid fa-pen-to-square"></i> Edit Job Requirements
-            </button>
         </div>
 
 

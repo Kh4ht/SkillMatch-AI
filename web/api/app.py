@@ -154,32 +154,6 @@ def upload():
 # #####################################################################
 
 # #####################################################################
-# region DELETE CANDIDATES
-
-
-@app.route("/delete_candidates", methods=["POST"])
-def delete_candidates():
-    selected_ids = request.form.getlist("selected_candidates")
-
-    if selected_ids:
-        Database.execute_set(
-            "DELETE FROM candidates WHERE id IN ({})".format(
-                ",".join(["?"] * len(selected_ids))
-            ),
-            selected_ids,
-        )
-        # "DELETE FROM candidates
-
-        flash(f"Successfully deleted {len(selected_ids)} candidate(s)", "success")
-    else:
-        flash("No candidates selected", "error")
-    return redirect("/results")
-
-
-# endregion
-# #####################################################################
-
-# #####################################################################
 # region RUN APP
 
 

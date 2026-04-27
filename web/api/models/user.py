@@ -131,6 +131,14 @@ class User(UserMixin):
 
         return Database.SELECT_jobs(current_user.id)
 
+    @staticmethod
+    def delete_job(job_id) -> tuple[bool, str]:
+
+        return Database.DELETE_job(
+            user_id=current_user.id,
+            job_id=job_id,
+        )
+
     # endregion
 
 

@@ -77,7 +77,9 @@
 }
 
 /* Dropdown Items */
-.menu-content a {
+.menu-content a,
+.menu-content button {
+    background: transparent;
     display: flex;
     align-items: center;
     gap: 12px;
@@ -87,20 +89,26 @@
     transition: all 0.2s ease;
     font-size: 14px;
     font-weight: bold;
+    width: 100%;
+    cursor: pointer;
+    border: none;
 }
 
-.menu-content a i {
+.menu-content a i,
+.menu-content button i {
     width: 20px;
     font-size: 16px;
     color: #667eea;
 }
 
-.menu-content a:hover {
+.menu-content a:hover,
+.menu-content button:hover {
     background: #f8f9ff;
     padding-left: 24px;
 }
 
-.menu-content a:hover i {
+.menu-content a:hover i,
+.menu-content button:hover i {
     transform: scale(1.1);
 }
 
