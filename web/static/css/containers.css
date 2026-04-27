@@ -31,6 +31,8 @@ div.grid-container {
 
 .container {
     overflow: auto;
+    display: flex;
+    padding: 10px;
     gap: 15px;
 }
 

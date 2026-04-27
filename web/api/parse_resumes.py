@@ -6,7 +6,7 @@ from flask import Blueprint, flash, redirect, render_template, request
 from flask_login import current_user, login_required
 
 # Local imports
-from models.job import Job
+from models.models import Job
 from models.user import User
 from models.database import Database
 from utils.utils import request_form_get
@@ -35,7 +35,7 @@ def parse_resumes_page():
 
     return render_template(
         "parse_resumes.html",
-        jobs=Database.SELECT_jobs(current_user.id),
+        jobs=User.get_jobs(),
     )
 
 
@@ -55,19 +55,19 @@ def add_job_submit():
 
     skill_name_weight: dict[str, int] = {}
 
-    required_skills.split(",")
+    required_skills = required_skills.split(",")
 
     for i in required_skills:
         skill_name_weight[i.strip()] = 1
 
     success, error_msg = User.add_job(
-        job=Job(
-            user_id=current_user.id,
-            job_title=job_title,
-            min_edu=min_education,
-            min_years_exp=int(min_years_exp),
-            skill_name_weight=skill_name_weight,
-        )
+        user_id=current_user.id,
+        job_title=job_title,
+        min_edu=min_education,
+        min_years_exp=int(min_years_exp),
+        min_edu_weight=1,
+        min_exp_weight=1,
+        skill_name_weight=skill_name_weight,
     )
 
     if success:

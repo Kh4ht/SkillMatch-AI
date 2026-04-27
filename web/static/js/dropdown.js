@@ -1,35 +1,29 @@
 // Dropdown functionality
 document.addEventListener('DOMContentLoaded', function()
 {
-    const dropdown = document.querySelector('.dropdown');
-
-    if (dropdown)
+    document.querySelectorAll('.menu-container').forEach(menu =>
     {
-        const dropbtn = dropdown.querySelector('.dropbtn');
-
-        // Toggle dropdown on button click
-        dropbtn.addEventListener('click', function(e)
+        menu.querySelector('.menu-show-btn').addEventListener('click', function(e)
         {
             e.stopPropagation();
-            dropdown.classList.toggle('show');
+            menu.classList.toggle('show');
         });
 
         // Close dropdown when clicking outside
         document.addEventListener('click', function(e)
         {
-            if (!dropdown.contains(e.target))
+            if (!menu.contains(e.target))
             {
-                dropdown.classList.remove('show');
+                menu.classList.remove('show');
             }
         });
-
         // Close dropdown when pressing Escape key
         document.addEventListener('keydown', function(e)
         {
-            if (e.key === 'Escape' && dropdown.classList.contains('show'))
+            if (e.key === 'Escape' && menu.classList.contains('show'))
             {
-                dropdown.classList.remove('show');
+                menu.classList.remove('show');
             }
         });
-    }
+    });
 });

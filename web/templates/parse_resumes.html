@@ -12,12 +12,29 @@
 {% block style %}
 
 <style>
+    .edit-job-button {
+        font-size: 20px;
+        color: rgba(255, 255, 255, 0.5);
+        background: transparent;
+        padding: 1px 10px;
+        transition: all 0.2s ease;
+        border: none;
+        border-radius: 50px;
+    }
+
+    .edit-job-button:hover {
+        transform: scale(1.4);
+        color: white;
+
+    }
+
     .job-card {
         /* Shape & Design */
         background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         border-radius: 16px;
         padding: 40px 20px;
         box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        position: relative;
 
         /* Text styling */
         color: white;
@@ -41,14 +58,46 @@
     /* Hover effect */
     .job-card:hover {
         transform: translateY(-5px);
-        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
     }
 
     /* Active/Selected state */
     .job-card.active {
         background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
         transform: scale(1.02);
-        box-shadow: 0 15px 35px rgba(0, 0, 0, 0.3);
+        box-shadow: 0 10px 20px rgba(0, 0, 0, 0.3);
+    }
+
+    .add-job-card {
+        /* Shape & Design */
+        background: linear-gradient(135deg, rgba(0, 255, 64, 0.5) 0%, rgba(211, 255, 207, 0.5) 100%);
+        border-radius: 16px;
+        padding: 40px 20px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+
+        /* Text styling */
+        color: rgb(16, 16, 16);
+        font-size: 18px;
+        font-weight: 600;
+        text-align: center;
+
+        /* Interactive */
+        cursor: pointer;
+        transition: all 0.3s ease;
+
+        /* Center text */
+        display: flex;
+        align-items: center;
+        justify-content: center;
+
+        /* Ensure consistent height */
+        min-height: 100px;
+    }
+
+    /* Hover effect */
+    .add-job-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
     }
 
 
@@ -139,28 +188,6 @@
         width: 80px;
     }
 
-    .match-score {
-        display: inline-block;
-        padding: 4px 8px;
-        border-radius: 20px;
-        font-weight: bold;
-        font-size: 12px;
-    }
-
-    .view-resume-btn {
-        background: #6c757d;
-        color: white;
-        border: none;
-        padding: 5px 10px;
-        border-radius: 4px;
-        cursor: pointer;
-        font-size: 12px;
-    }
-
-    .view-resume-btn:hover {
-        background: #5a6268;
-    }
-
     .close {
         font-size: 28px;
         font-weight: bold;
@@ -192,33 +219,54 @@
         <h2>
             <i class="fa-solid fa-briefcase"></i> Jobs
         </h2>
-        <button class="btn btn-green" onclick="openWindow('addJob-window')">
-            <i class="fa-solid fa-plus"></i> Add New Job
-        </button>
     </div>
 
-    <div class="horizontal-container">
+    <div class="grid-container">
         <!-- Jobs will be loaded here dynamically -->
-        {% if not jobs %}
-        <div class="job-card">
-            Add A New Job To Start
-        </div>
-        {% endif %}
         {% for job in jobs %}
-        <div id="{{ job['id'] }}" class="job-card" onclick='selectJob("{{ job[' id']}}")'>
-            {{ job["title"] }}
+
+        <div class="job-card" data-job-id="{{ job.id }}" data-job-title="{{ job.job_title }}"
+            data-min-years-exp="{{ job.min_years_exp }}" data-min-edu="{{ job.min_edu }}"
+            data-min-edu-weight="{{ job.min_edu_weight }}" data-min-exp-weight="{{ job.min_exp_weight }}"
+            data-skills='{{ job.skill_name_weight | tojson }}' onclick="selectJob(this)">
+            {{ job.job_title }}
+
+            <div class="menu-container" style="position: absolute; top: 9px; right: 5px;">
+
+                <button class="menu-show-btn edit-job-button">
+                    <i class="fa-solid fa-ellipsis-vertical"></i>
+                </button>
+
+                <div class="menu-content">
+                    <a href="">
+                        <i class="fa-solid fa-pen"></i> Rename
+                    </a>
+                    <a href="">
+                        <i class="fa-solid fa-pencil"></i> Edit
+                    </a>
+                    <a href="" class="delete-option">
+                        <i class="fa-solid fa-trash"></i> Delete
+                    </a>
+                </div>
+            </div>
+
         </div>
+
+
         {% endfor %}
+        <div class="add-job-card" onclick="openWindow('addJob-window')">
+            <i class="fa-solid fa-plus"></i> Add New Job
+        </div>
     </div>
 
 </div>
 
 
 <!-- Candidates Table Container -->
-<div class="content-container" style="height: 1000px;">
+<div class="content-container" style="height: fit-content;">
 
     <!-- Job Details Section -->
-    <div class="vertical-container" style="margin-bottom: 30px; height: 550px;">
+    <div class="vertical-container" style="max-height: 500px; margin-bottom: 30px;">
         <div class="items-container">
             <h3>
                 <i class="fa-solid fa-circle-info"></i> Job Details
@@ -227,12 +275,34 @@
                 <i class="fa-solid fa-pen-to-square"></i> Edit Job Requirements
             </button>
         </div>
-        <span id="job_requirements" name="job_requirements">
-            example <br>
-            <strong>Required Skills:</strong> Python, Machine Learning, SQL<br>
-            <strong>Experience:</strong> 3+ years<br>
-            <strong>Education:</strong> Bachelor's in Computer Science
-        </span>
+
+
+        <div class="vertical-container">
+            <table id="job_details_table" style="width: 50%;">
+                <thead>
+                    <tr>
+                        <th>Category</th>
+                        <th>Data</th>
+                        <th>Weight</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <th>skills</th>
+                        <td colspan="2" rowspan="3" style="text-align: center;">Select a Job To View It's Details</td>
+
+                    </tr>
+                    <tr>
+                        <th>Experience</th>
+
+                    </tr>
+                    <tr>
+                        <th>Education</th>
+
+                    </tr>
+                </tbody>
+            </table>
+        </div>
     </div>
 
     <!-- Add Candidates Section -->
@@ -259,7 +329,7 @@
 
     <!-- Table Section -->
     <!-- Scrollable container for the table -->
-    <div class="container">
+    <div class="container" style="height: 500px;">
         <table id="candidates-table" class="candidates-table">
             <thead>
                 <tr>
@@ -294,9 +364,12 @@
                 </tr>
                 {% endfor %}
 
+                <tr id="no_search_results">
+                    <td style="text-align: center; padding:20px" colspan="8">No Search Results Found</td>
+                </tr>
                 <tr>
                     <td>c</td>
-                    <td>Select</td>
+                    <td>hello</td>
                     <td>Select</td>
                     <td>Select</td>
                     <td>Select</td>
@@ -324,197 +397,6 @@
                     <td>Select</td>
                     <td class="match-score">90</td>
                 </tr>
-                <tr>
-                    <td>c</td>
-                    <td>Select</td>
-                    <td>Select</td>
-                    <td>Select</td>
-                    <td>Select</td>
-                    <td>Select</td>
-                    <td>Select</td>
-                    <td class="match-score">90</td>
-                </tr>
-                <tr>
-                    <td>c</td>
-                    <td>Select</td>
-                    <td>Select</td>
-                    <td>Select</td>
-                    <td>Select</td>
-                    <td>Select</td>
-                    <td>Select</td>
-                    <td class="match-score">90</td>
-                </tr>
-                <tr>
-                    <td>c</td>
-                    <td>Select</td>
-                    <td>Select</td>
-                    <td>Select</td>
-                    <td>Select</td>
-                    <td>Select</td>
-                    <td>Select</td>
-                    <td class="match-score">90</td>
-                </tr>
-                <tr>
-                    <td>c</td>
-                    <td>Select</td>
-                    <td>Select</td>
-                    <td>Select</td>
-                    <td>Select</td>
-                    <td>Select</td>
-                    <td>Select</td>
-                    <td class="match-score">90</td>
-                </tr>
-                <tr>
-                    <td>c</td>
-                    <td>Select</td>
-                    <td>Select</td>
-                    <td>Select</td>
-                    <td>Select</td>
-                    <td>Select</td>
-                    <td>Select</td>
-                    <td class="match-score">90</td>
-                </tr>
-                <tr>
-                    <td>c</td>
-                    <td>Select</td>
-                    <td>Select</td>
-                    <td>Select</td>
-                    <td>Select</td>
-                    <td>Select</td>
-                    <td>Select</td>
-                    <td class="match-score">90</td>
-                </tr>
-                <tr>
-                    <td>c</td>
-                    <td>Select</td>
-                    <td>Select</td>
-                    <td>Select</td>
-                    <td>Select</td>
-                    <td>Select</td>
-                    <td>Select</td>
-                    <td class="match-score">90</td>
-                </tr>
-                <tr>
-                    <td>c</td>
-                    <td>Select</td>
-                    <td>Select</td>
-                    <td>Select</td>
-                    <td>Select</td>
-                    <td>Select</td>
-                    <td>Select</td>
-                    <td class="match-score">90</td>
-                </tr>
-                <tr>
-                    <td>c</td>
-                    <td>Select</td>
-                    <td>Select</td>
-                    <td>Select</td>
-                    <td>Select</td>
-                    <td>Select</td>
-                    <td>Select</td>
-                    <td class="match-score">90</td>
-                </tr>
-                <tr>
-                    <td>c</td>
-                    <td>Select</td>
-                    <td>Select</td>
-                    <td>Select</td>
-                    <td>Select</td>
-                    <td>Select</td>
-                    <td>Select</td>
-                    <td class="match-score">90</td>
-                </tr>
-                <tr>
-                    <td>c</td>
-                    <td>Select</td>
-                    <td>Select</td>
-                    <td>Select</td>
-                    <td>Select</td>
-                    <td>Select</td>
-                    <td>Select</td>
-                    <td class="match-score">90</td>
-                </tr>
-                <tr>
-                    <td>c</td>
-                    <td>Select</td>
-                    <td>Select</td>
-                    <td>Select</td>
-                    <td>Select</td>
-                    <td>Select</td>
-                    <td>Select</td>
-                    <td class="match-score">90</td>
-                </tr>
-                <tr>
-                    <td>c</td>
-                    <td>Select</td>
-                    <td>Select</td>
-                    <td>Select</td>
-                    <td>Select</td>
-                    <td>Select</td>
-                    <td>Select</td>
-                    <td class="match-score">90</td>
-                </tr>
-                <tr>
-                    <td>c</td>
-                    <td>Select</td>
-                    <td>Select</td>
-                    <td>Select</td>
-                    <td>Select</td>
-                    <td>Select</td>
-                    <td>Select</td>
-                    <td class="match-score">90</td>
-                </tr>
-                <tr>
-                    <td>c</td>
-                    <td>Select</td>
-                    <td>Select</td>
-                    <td>Select</td>
-                    <td>Select</td>
-                    <td>Select</td>
-                    <td>Select</td>
-                    <td class="match-score">90</td>
-                </tr>
-                <tr>
-                    <td>c</td>
-                    <td>Select</td>
-                    <td>Select</td>
-                    <td>Select</td>
-                    <td>Select</td>
-                    <td>Select</td>
-                    <td>Select</td>
-                    <td class="match-score">90</td>
-                </tr>
-                <tr>
-                    <td>c</td>
-                    <td>Select</td>
-                    <td>Select</td>
-                    <td>Select</td>
-                    <td>Select</td>
-                    <td>Select</td>
-                    <td>Select</td>
-                    <td class="match-score">90</td>
-                </tr>
-                <tr>
-                    <td>c</td>
-                    <td>Select</td>
-                    <td>Select</td>
-                    <td>Select</td>
-                    <td>Select</td>
-                    <td>Select</td>
-                    <td>Select</td>
-                    <td class="match-score">90</td>
-                </tr>
-                <tr>
-                    <td>c</td>
-                    <td>Select</td>
-                    <td>Select</td>
-                    <td>Select</td>
-                    <td>Select</td>
-                    <td>Select</td>
-                    <td>Select</td>
-                    <td class="match-score">90</td>
-                </tr>
-
             </tbody>
         </table>
     </div>
@@ -530,7 +412,7 @@
         <div class="items-container" style="margin-bottom: 50px;">
             <h3>Add New Job</h3>
             <span class="close" onclick="toggleWindow('addJob-window')">
-                <i class="fa-regular fa-circle-xmark"></i>
+                <i class="fa-solid fa-xmark"></i>
             </span>
         </div>
 
@@ -539,12 +421,13 @@
 
                 <!-- Job Title -->
                 <label>Job Title *</label>
-                <input type="text" name="job_title" placeholder="e.g., Software Engineer" required>
+                <input type="text" name="job_title" placeholder="e.g., Software Engineer" minlength="3" maxlength="30"
+                    required>
 
                 <!-- Skills Input -->
                 <label>Required Skills (type one then press enter) *</label>
                 <input type="text" id="skill-input" placeholder="e.g., Python">
-                <input type="hidden" name="required_skills" id="skills-hidden" />
+                <input type="hidden" name="required_skills" id="skills-hidden">
                 <div style="min-height:14px">
                     <p id="warning" style="transform-origin: left center;
                                                        font-size: 12px;
@@ -559,7 +442,7 @@
 
                 <!-- Required Experience -->
                 <label>Required Experience (years) *</label>
-                <input type="number" name="min_years_exp" id="jobExperience" value="0" min="0" required>
+                <input type="number" name="min_years_exp" id="jobExperience" value="0" min="0" max="30" required>
 
                 <!-- Required Education -->
                 <label>Minimum Education *</label>
@@ -576,120 +459,6 @@
 <!-- All Page-Specific JS Scripts Go Here -->
 {% block script %}
 
-<script src="{{ url_for('static', filename='js/skills.js') }}"></script>
-
-<script>
-    const clearSearchInputBtn = document.getElementById('clear_search_btn');
-    const searchInput = document.getElementById('search_txt_input');
-    const candidatesTable = document.getElementById('candidates-table');
-
-    // Add event listeners when page loads
-    document.addEventListener('DOMContentLoaded', function () {
-        // Search as you type
-        searchInput.addEventListener('input', searchTable);
-
-        // Call searchTable on load to set initial button state
-        searchTable();
-
-        setMatchScoreColors();
-    });
-
-
-    function setMatchScoreColors() {
-        const scoreCells = document.querySelectorAll('.match-score');
-        scoreCells.forEach((cell) => {
-            const score = parseFloat(cell.textContent);
-
-            if (!isNaN(score)) {
-                const ratio = Math.min(100, Math.max(0, score)) / 100;
-
-                const red = Math.floor(255 * clamp(1 - ratio, 0, 0.45) * 2); // 0.5 to 1 maps to 255-0 red and 0 to 0.5 maps to 255 red
-
-                const green = Math.floor(255 * clamp(ratio, 0, 0.45) * 2); // 0 to 0.5 maps to 0-255 green and 0.5 to 1 maps to 255 green
-
-                cell.style.color = `rgb(${red}, ${green}, 0)`;
-            }
-        });
-    }
-
-    function searchTable() {
-        const searchTerm = searchInput.value.toLowerCase().trim();
-        const tbody = candidatesTable.querySelector('tbody');
-        const rows = tbody.querySelectorAll('tr');
-        let selectedJobId = null;
-
-        let hasMatches = false;
-
-        rows.forEach((row) => {
-            // Skip the "no results" row
-            if (row.id === 'noResultsRow')
-                return;
-
-            // Get all text content from the row (excluding the checkbox column)
-            const cells = row.querySelectorAll('td:not(.checkbox-col)');
-            let rowText = '';
-
-            cells.forEach((cell) => {
-                rowText += cell.textContent.toLowerCase() + ' ';
-            });
-
-            // Check if search term matches any content in the row
-            if (searchTerm === '' || rowText.includes(searchTerm)) {
-                row.style.display = ''; // Show row
-                hasMatches = true;
-            } else {
-                row.style.display = 'none'; // Hide row
-            }
-        });
-
-        // Update clear button disabled state
-        clearSearchInputBtn.disabled = searchTerm === '';
-
-        // Optional: Show "no results" message
-        showNoResultsMessage(!hasMatches && searchTerm !== '');
-    }
-
-    function showNoResultsMessage(show) {
-        let noResultsRow = document.getElementById('noResultsRow');
-
-        if (show) {
-            if (!noResultsRow) {
-                noResultsRow = document.createElement('tr');
-                noResultsRow.id = 'noResultsRow';
-                const colspan = document.querySelectorAll('thead th').length;
-                noResultsRow.innerHTML =
-                    `<td colspan="${colspan}" style="text-align: center; padding: 40px;">
-                        No matching candidates found
-                    </td>`;
-                candidatesTable.querySelector('tbody').appendChild(noResultsRow);
-            } else {
-                noResultsRow.style.display = '';
-            }
-        } else if (noResultsRow) {
-            noResultsRow.style.display = 'none';
-        }
-    }
-
-    function clearSearchInput() {
-        searchInput.value = '';
-        searchTable();
-        searchInput.focus();
-    }
-
-    function selectJob(newSelectedJobId) {
-
-        // Do Nothing If The Selected Job Card Is Reselected.
-        if (selectedJobId === newSelectedJobId)
-            return;
-
-        selectedJobId = newSelectedJobId;
-
-        // Update active state in UI
-        document.querySelectorAll('.job-card').forEach(card => {
-            card.classList.remove('active');
-        });
-        event.currentTarget.classList.add('active');
-    }
-</script>
+<script src="{{ url_for('static', filename='js/parse_resumes.js') }}"></script>
 
 {% endblock script %}

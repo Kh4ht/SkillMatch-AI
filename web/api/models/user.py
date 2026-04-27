@@ -2,12 +2,14 @@
 
 
 # Standard library imports
-from flask_login import UserMixin
+from flask_login import UserMixin, current_user
 import re
 from werkzeug.security import generate_password_hash, check_password_hash
 
+
 # Local imports
-from .job import Job
+from .models import Job
+from .database_query import UsersCol
 from .database import Database
 
 
@@ -87,12 +89,12 @@ class User(UserMixin):
 
         return (
             User(
-                id=user_data["id"],
-                username=user_data["user_name"],
-                email=user_data["email"],
-                company_name=user_data["company_name"],
-                created_at=user_data["created_at"],
-                last_login=user_data["last_login"],
+                id=user_data[UsersCol.ID],
+                username=user_data[UsersCol.NAME],
+                email=user_data[UsersCol.EMAIL],
+                company_name=user_data[UsersCol.COMPANY_NAME],
+                created_at=user_data[UsersCol.CREATED_AT],
+                last_login=user_data[UsersCol.LAST_LOGIN],
             ),
             "Authenticated successfully!",
         )
@@ -100,13 +102,34 @@ class User(UserMixin):
     # region JOBS
 
     @staticmethod
-    def add_job(job: Job) -> tuple[bool, str]:
+    def add_job(
+        user_id: int,
+        job_title: str,
+        min_edu: str,
+        min_years_exp: int,
+        min_edu_weight: int,
+        min_exp_weight: int,
+        skill_name_weight: dict[str, int],
+    ) -> tuple[bool, str]:
         """Add a new job for the user"""
 
-        if not job.skill_name_weight:
+        if not skill_name_weight:
             return False, "At Least One Skill Is Required For The Job"
 
-        return Database.INSERT_job(job=job)
+        return Database.INSERT_job(
+            user_id=user_id,
+            job_title=job_title,
+            min_edu=min_edu,
+            min_years_exp=min_years_exp,
+            min_edu_weight=min_edu_weight,
+            min_exp_weight=min_exp_weight,
+            skill_name_weight=skill_name_weight,
+        )
+
+    @staticmethod
+    def get_jobs() -> list[Job]:
+
+        return Database.SELECT_jobs(current_user.id)
 
     # endregion
 

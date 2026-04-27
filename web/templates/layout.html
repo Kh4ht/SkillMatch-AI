@@ -13,7 +13,7 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/input.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/tables.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/headers_labels.css') }}">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/popup_effect.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/keyframes.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/windows.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/flash_msg.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/flash_msg.css') }}">
@@ -23,6 +23,30 @@
 
     <!-- Font Awesome for icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+
+    <style>
+        .profile-button {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 6px 16px 6px 8px;
+            background: transparent;
+            border: 2px solid #e0e0e0;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 14px;
+            font-weight: 500;
+            color: #333;
+        }
+
+        .profile-button:hover {
+            border-color: #667eea;
+            background: #f8f9ff;
+            transform: translateY(-1px);
+        }
+    </style>
 
     {% block head %}
     {% endblock head %}
@@ -55,8 +79,8 @@
             <div class="nav-account">
                 {% if current_user.is_authenticated %}
                 <!-- Logged in: show avatar/dropdown -->
-                <div class="dropdown">
-                    <button class="dropbtn">
+                <div id="login_menu" class="menu-container">
+                    <button class="profile-button menu-show-btn">
                         <div class="avatar">
                             {% if current_user.avatar %}
                             <img src="{{ url_for('static', filename='avatars/' + current_user.avatar) }}" alt="Avatar">
@@ -69,7 +93,8 @@
                         <span class="username">{{ current_user.username }}</span>
                         <i class="fas fa-chevron-down dropdown-icon"></i>
                     </button>
-                    <div class="dropdown-content">
+
+                    <div class="menu-content">
                         <a href="{{ url_for('auth.profile_page') }}">
                             <i class="fas fa-user-circle"></i>
                             <span>My Profile</span>
@@ -78,8 +103,8 @@
                             <i class="fas fa-cog"></i>
                             <span>Settings</span>
                         </a>
-                        <div class="dropdown-divider"></div>
-                        <a href="{{ url_for('auth.logout_submit') }}" class="logout-link">
+                        <hr>
+                        <a href="{{ url_for('auth.logout_submit') }}" style="color: #dc3545">
                             <i class="fas fa-sign-out-alt"></i>
                             <span>Logout</span>
                         </a>
@@ -87,9 +112,8 @@
                 </div>
                 {% else %}
                 <!-- Logged out: simple login button -->
-                <a href="{{ url_for('auth.login_page') }}" class="btn-login">
-                    <i class="fas fa-sign-in-alt"></i>
-                    <span>Login</span>
+                <a class="btn btn-purple" href="{{ url_for('auth.login_page') }}">
+                    <i class="fas fa-sign-in-alt"></i> Login
                 </a>
                 {% endif %}
             </div>

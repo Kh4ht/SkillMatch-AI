@@ -6,7 +6,14 @@ import sqlite3, os
 from typing import Any
 
 # Local imports
-from .job import Job
+from .models import Job, JobSkill
+from .database_query import (
+    JobsCol,
+    UsersCol,
+    JobSkillsCol,
+    CandidatesCol,
+    UserSettingsCol,
+)
 
 
 # endregion
@@ -44,100 +51,79 @@ class Database:
 
             # ========== CREATE TABLES ==========
 
-            # Users table
+            # Users table using constants
             conn.execute(
-                """
-                CREATE TABLE IF NOT EXISTS users (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    
-                    user_name TEXT UNIQUE NOT NULL,
-                    email TEXT UNIQUE NOT NULL,
-                    password_hash TEXT NOT NULL,
-                    company_name TEXT NOT NULL,
-                    
-                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    is_active INTEGER DEFAULT 1,
-                    last_login TIMESTAMP
+                f"""
+                CREATE TABLE IF NOT EXISTS {UsersCol.TABLE_NAME} (
+                    {UsersCol.ID} INTEGER PRIMARY KEY AUTOINCREMENT,
+                    {UsersCol.NAME} TEXT UNIQUE NOT NULL,
+                    {UsersCol.EMAIL} TEXT UNIQUE NOT NULL,
+                    {UsersCol.PASSWORD_HASH} TEXT NOT NULL,
+                    {UsersCol.COMPANY_NAME} TEXT NOT NULL,
+                    {UsersCol.CREATED_AT} TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    {UsersCol.IS_ACTIVE} INTEGER DEFAULT 1,
+                    {UsersCol.LAST_LOGIN} TIMESTAMP
                 )
             """
             )
 
             # User settings table
             conn.execute(
-                """
-                CREATE TABLE IF NOT EXISTS user_settings (
-                    user_id INTEGER PRIMARY KEY,
-                    theme TEXT DEFAULT 'light',
-                    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
-                )
-            """
-            )
-
-            # User sessions table
-            conn.execute(
-                """
-                CREATE TABLE IF NOT EXISTS user_sessions (
-                    session_id TEXT PRIMARY KEY,
-                    user_id INTEGER NOT NULL,
-                    ip_address TEXT,
-                    user_agent TEXT,
-                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    expires_at TIMESTAMP,
-                    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+                f"""
+                CREATE TABLE IF NOT EXISTS {UserSettingsCol.TABLE_NAME} (
+                    {UserSettingsCol.USER_ID} INTEGER PRIMARY KEY,
+                    {UserSettingsCol.THEME} TEXT DEFAULT 'light',
+                    FOREIGN KEY ({UserSettingsCol.USER_ID}) REFERENCES {UsersCol.TABLE_NAME}({UsersCol.ID}) ON DELETE CASCADE
                 )
             """
             )
 
             # Jobs table
             conn.execute(
-                """
-                CREATE TABLE IF NOT EXISTS jobs (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    
-                    user_id INTEGER NOT NULL,
-                    title TEXT NOT NULL,
-                    min_edu TEXT NOT NULL,
-                    min_years_exp INTEGER NOT NULL,
-
-                    min_edu_weight INTEGER DEFAULT 1,
-                    min_exp_weight INTEGER DEFAULT 1,
-                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+                f"""
+                CREATE TABLE IF NOT EXISTS {JobsCol.TABLE_NAME} (
+                    {JobsCol.ID} INTEGER PRIMARY KEY AUTOINCREMENT,
+                    {JobsCol.USER_ID} INTEGER NOT NULL,
+                    {JobsCol.TITLE} TEXT NOT NULL,
+                    {JobsCol.MIN_EDU} TEXT NOT NULL,
+                    {JobsCol.MIN_YEARS_EXP} INTEGER NOT NULL,
+                    {JobsCol.MIN_EDU_WEIGHT} INTEGER DEFAULT 1,
+                    {JobsCol.MIN_EXP_WEIGHT} INTEGER DEFAULT 1,
+                    {JobsCol.CREATED_AT} TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    {JobsCol.UPDATED_AT} TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    FOREIGN KEY ({JobsCol.USER_ID}) REFERENCES {UsersCol.TABLE_NAME}({UsersCol.ID}) ON DELETE CASCADE
                 )
             """
             )
 
             # Job skills table
             conn.execute(
-                """
-                CREATE TABLE IF NOT EXISTS job_skills (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    
-                    job_id INTEGER NOT NULL,
-                    name TEXT NOT NULL,
-                    weight INTEGER DEFAULT 1,
-                    
-                    FOREIGN KEY (job_id) REFERENCES jobs(id) ON DELETE CASCADE
+                f"""
+                CREATE TABLE IF NOT EXISTS {JobSkillsCol.TABLE_NAME} (
+                    {JobSkillsCol.ID} INTEGER PRIMARY KEY AUTOINCREMENT,
+                    {JobSkillsCol.JOB_ID} INTEGER NOT NULL,
+                    {JobSkillsCol.NAME} TEXT NOT NULL,
+                    {JobSkillsCol.WEIGHT} INTEGER DEFAULT 1,
+                    FOREIGN KEY ({JobSkillsCol.JOB_ID}) REFERENCES {JobsCol.TABLE_NAME}({JobsCol.ID}) ON DELETE CASCADE
                 )
             """
             )
 
             # Candidates table
             conn.execute(
-                """
-                CREATE TABLE IF NOT EXISTS candidates (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    job_id INTEGER NOT NULL,
-                    name TEXT NOT NULL,
-                    email TEXT UNIQUE NOT NULL,
-                    phone TEXT,
-                    resume_filename TEXT,
-                    education TEXT,
-                    skills TEXT,
-                    match_score REAL,
-                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    FOREIGN KEY (job_id) REFERENCES jobs(id) ON DELETE CASCADE
+                f"""
+                CREATE TABLE IF NOT EXISTS {CandidatesCol.TABLE_NAME} (
+                    {CandidatesCol.ID} INTEGER PRIMARY KEY AUTOINCREMENT,
+                    {CandidatesCol.JOB_ID} INTEGER NOT NULL,
+                    {CandidatesCol.NAME} TEXT NOT NULL,
+                    {CandidatesCol.EMAIL} TEXT UNIQUE NOT NULL,
+                    {CandidatesCol.PHONE} TEXT,
+                    {CandidatesCol.RESUME_FILENAME} TEXT,
+                    {CandidatesCol.EDUCATION} TEXT,
+                    {CandidatesCol.SKILLS} TEXT,
+                    {CandidatesCol.MATCH_SCORE} REAL,
+                    {CandidatesCol.CREATED_AT} TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    FOREIGN KEY ({CandidatesCol.JOB_ID}) REFERENCES {JobsCol.TABLE_NAME}({JobsCol.ID}) ON DELETE CASCADE
                 )
             """
             )
@@ -147,12 +133,12 @@ class Database:
             # Trigger: Auto-create user settings when user is created
             conn.execute("DROP TRIGGER IF EXISTS auto_create_user_settings")
             conn.execute(
-                """
+                f"""
                 CREATE TRIGGER auto_create_user_settings
-                AFTER INSERT ON users
+                AFTER INSERT ON {UsersCol.TABLE_NAME}
                 BEGIN
-                    INSERT INTO user_settings (user_id)
-                    VALUES (NEW.id);
+                    INSERT INTO {UserSettingsCol.TABLE_NAME} ({UserSettingsCol.USER_ID})
+                    VALUES (NEW.{UsersCol.ID});
                 END
             """
             )
@@ -160,54 +146,52 @@ class Database:
             # Trigger: Update job timestamp when job is updated
             conn.execute("DROP TRIGGER IF EXISTS update_jobs_timestamp")
             conn.execute(
-                """
+                f"""
                 CREATE TRIGGER update_jobs_timestamp 
-                AFTER UPDATE ON jobs
+                AFTER UPDATE ON {JobsCol.TABLE_NAME}
                 BEGIN
-                    UPDATE jobs 
-                    SET updated_at = CURRENT_TIMESTAMP 
-                    WHERE id = NEW.id;
+                    UPDATE {JobsCol.TABLE_NAME} 
+                    SET {JobsCol.UPDATED_AT} = CURRENT_TIMESTAMP 
+                    WHERE {JobsCol.ID} = NEW.{JobsCol.ID};
                 END
             """
             )
 
-            # ========== CREATE INDEXES (for performance) ==========
+            # ========== CREATE INDEXES ==========
 
             # Users indexes
-            conn.execute("CREATE INDEX IF NOT EXISTS idx_users_email ON users(email)")
             conn.execute(
-                "CREATE INDEX IF NOT EXISTS idx_users_username ON users(user_name)"
-            )
-
-            # User sessions indexes
-            conn.execute(
-                "CREATE INDEX IF NOT EXISTS idx_user_sessions_user_id ON user_sessions(user_id)"
+                f"CREATE INDEX IF NOT EXISTS idx_users_email ON {UsersCol.TABLE_NAME}({UsersCol.EMAIL})"
             )
             conn.execute(
-                "CREATE INDEX IF NOT EXISTS idx_user_sessions_expires_at ON user_sessions(expires_at)"
+                f"CREATE INDEX IF NOT EXISTS idx_users_username ON {UsersCol.TABLE_NAME}({UsersCol.NAME})"
             )
 
             # Jobs indexes
-            conn.execute("CREATE INDEX IF NOT EXISTS idx_jobs_user_id ON jobs(user_id)")
-            conn.execute("CREATE INDEX IF NOT EXISTS idx_jobs_title ON jobs(title)")
+            conn.execute(
+                f"CREATE INDEX IF NOT EXISTS idx_jobs_user_id ON {JobsCol.TABLE_NAME}({JobsCol.USER_ID})"
+            )
+            conn.execute(
+                f"CREATE INDEX IF NOT EXISTS idx_jobs_title ON {JobsCol.TABLE_NAME}({JobsCol.TITLE})"
+            )
 
             # Job skills indexes
             conn.execute(
-                "CREATE INDEX IF NOT EXISTS idx_job_skills_job_id ON job_skills(job_id)"
+                f"CREATE INDEX IF NOT EXISTS idx_job_skills_job_id ON {JobSkillsCol.TABLE_NAME}({JobSkillsCol.JOB_ID})"
             )
             conn.execute(
-                "CREATE INDEX IF NOT EXISTS idx_job_skills_name ON job_skills(name)"
+                f"CREATE INDEX IF NOT EXISTS idx_job_skills_name ON {JobSkillsCol.TABLE_NAME}({JobSkillsCol.NAME})"
             )
 
             # Candidates indexes
             conn.execute(
-                "CREATE INDEX IF NOT EXISTS idx_candidates_job_id ON candidates(job_id)"
+                f"CREATE INDEX IF NOT EXISTS idx_candidates_job_id ON {CandidatesCol.TABLE_NAME}({CandidatesCol.JOB_ID})"
             )
             conn.execute(
-                "CREATE INDEX IF NOT EXISTS idx_candidates_email ON candidates(email)"
+                f"CREATE INDEX IF NOT EXISTS idx_candidates_email ON {CandidatesCol.TABLE_NAME}({CandidatesCol.EMAIL})"
             )
             conn.execute(
-                "CREATE INDEX IF NOT EXISTS idx_candidates_match_score ON candidates(match_score)"
+                f"CREATE INDEX IF NOT EXISTS idx_candidates_match_score ON {CandidatesCol.TABLE_NAME}({CandidatesCol.MATCH_SCORE})"
             )
 
             conn.commit()
@@ -254,11 +238,6 @@ class Database:
             else:  # UPDATE, DELETE, REPLACE, etc.
                 return cursor.rowcount  # Return number of affected rows
 
-    # @classmethod
-    # def execute(cls, query:str, params=()) -> sqlite3.Cursor:
-    #     with cls.__get_db() as conn:
-    #         cursor = conn.execute(query, params)
-
     @classmethod
     def begin_transaction(cls):
         """Start a manual transaction"""
@@ -290,10 +269,10 @@ class Database:
 
         try:
             affected_rows_count = cls.execute_set(
-                """
-                UPDATE users 
-                SET last_login = CURRENT_TIMESTAMP 
-                WHERE id = ?
+                f"""
+                UPDATE {UsersCol.TABLE_NAME} 
+                SET {UsersCol.LAST_LOGIN} = CURRENT_TIMESTAMP 
+                WHERE {UsersCol.ID} = ?
                 """,
                 (user_id,),
             )
@@ -316,11 +295,11 @@ class Database:
         """Get User By Username Or Email, And Return User Data If Found"""
 
         return cls.execute_select_one(
-            """
+            f"""
             SELECT *
-            FROM users 
-            WHERE email = ? OR user_name = ?
-        """,
+            FROM {UsersCol.TABLE_NAME} 
+            WHERE {UsersCol.EMAIL} = ? OR {UsersCol.NAME} = ?
+            """,
             (user_name_or_email, user_name_or_email),
         )
 
@@ -329,10 +308,10 @@ class Database:
         """Get User By ID, And Return User Data If Found"""
 
         return cls.execute_select_one(
-            """
+            f"""
             SELECT *
-            FROM users
-            WHERE id = ?
+            FROM {UsersCol.TABLE_NAME}
+            WHERE {UsersCol.ID} = ?
             """,
             (user_id),
         )
@@ -348,9 +327,9 @@ class Database:
         """Add A New User To The users Table And Returns True If Added Successfully."""
         try:
             cls.execute_set(
-                """
-                INSERT INTO users
-                (user_name, email, password_hash, company_name)
+                f"""
+                INSERT INTO {UsersCol.TABLE_NAME}
+                ({UsersCol.NAME}, {UsersCol.EMAIL}, {UsersCol.PASSWORD_HASH}, {UsersCol.COMPANY_NAME})
                 VALUES (?, ?, ?, ?)
                 """,
                 (user_name, email, password_hash, company_name),
@@ -361,15 +340,21 @@ class Database:
         # Handle UNIQUE Constraint Violations
         except sqlite3.IntegrityError as e:
             error_msg = str(e)
-            if "user_name" in error_msg or "users.user_name" in error_msg:
+            if (
+                UsersCol.NAME in error_msg
+                or f"{UsersCol.TABLE_NAME}.{UsersCol.NAME}" in error_msg
+            ):
                 return (
                     False,
-                    f"Username '{user_name}' is already taken. Please choose a different username.",
+                    f"{UsersCol.NAME} '{user_name}' is already taken. Please choose a different one.",
                 )
-            elif "email" in error_msg or "users.email" in error_msg:
+            elif (
+                UsersCol.EMAIL in error_msg
+                or f"{UsersCol.TABLE_NAME}.{UsersCol.EMAIL}" in error_msg
+            ):
                 return (
                     False,
-                    f"Email '{email}' is already registered. Please use a different email address or log in.",
+                    f"{UsersCol.EMAIL} '{email}' is already registered. Please use a different one.",
                 )
             else:
                 return False, f"Database Integrity Error: {error_msg}"
@@ -382,7 +367,16 @@ class Database:
     # region JOB QUERIES
 
     @classmethod
-    def INSERT_job(cls, job: Job) -> tuple[bool, str]:
+    def INSERT_job(
+        cls,
+        user_id: int,
+        job_title: str,
+        min_edu: str,
+        min_years_exp: int,
+        min_edu_weight: int,
+        min_exp_weight: int,
+        skill_name_weight: dict[str, int],
+    ) -> tuple[bool, str]:
         """Add A New Job To The jobs Table And Returns True If Added Successfully."""
 
         conn = None
@@ -393,18 +387,18 @@ class Database:
 
             # Insert job
             cursor.execute(
-                """
-                INSERT INTO jobs
-                (user_id, title, min_edu, min_years_exp, min_edu_weight, min_exp_weight)
+                f"""
+                INSERT INTO {JobsCol.TABLE_NAME}
+                ({JobsCol.USER_ID}, {JobsCol.TITLE}, {JobsCol.MIN_EDU}, {JobsCol.MIN_YEARS_EXP}, {JobsCol.MIN_EDU_WEIGHT}, {JobsCol.MIN_EXP_WEIGHT})
                 VALUES (?, ?, ?, ?, ?, ?)
                 """,
                 (
-                    job.user_id,
-                    job.job_title,
-                    job.min_edu,
-                    job.min_years_exp,
-                    job.min_edu_weight,
-                    job.min_exp_weight,
+                    user_id,
+                    job_title,
+                    min_edu,
+                    min_years_exp,
+                    min_edu_weight,
+                    min_exp_weight,
                 ),
             )
 
@@ -414,11 +408,11 @@ class Database:
                 return False, "Error Getting Job ID After Insertion"
 
             # Insert skills
-            for skill_name, skill_weight in job.skill_name_weight.items():
+            for skill_name, skill_weight in skill_name_weight.items():
                 cursor.execute(
-                    """
-                    INSERT INTO job_skills
-                    (job_id, name, weight)
+                    f"""
+                    INSERT INTO {JobSkillsCol.TABLE_NAME}
+                    ({JobSkillsCol.JOB_ID}, {JobSkillsCol.NAME}, {JobSkillsCol.WEIGHT})
                     VALUES (?, ?, ?)
                     """,
                     (job_id, skill_name, skill_weight),
@@ -432,8 +426,8 @@ class Database:
             if conn:
                 cls.rollback_transaction(conn)
             error_msg = str(e)
-            if "title" in error_msg:
-                return False, f"Title '{job.job_title}' Is Already Taken."
+            if JobsCol.TITLE in error_msg:
+                return False, f"Title '{job_title}' Is Already Taken."
             return False, f"Database Integrity Error: {error_msg}"
 
         except Exception as e:
@@ -442,15 +436,63 @@ class Database:
             return False, f"Unexpected Error: {str(e)}"
 
     @classmethod
-    def SELECT_jobs(cls, user_id):
+    def SELECT_job_skills(cls, job_id) -> list[JobSkill]:
+        data_list = cls.execute_select(
+            f"""
+            SELECT * FROM {JobSkillsCol.TABLE_NAME}
+            WHERE {JobSkillsCol.JOB_ID} = ?
+            """,
+            (job_id,),
+        )
 
-        return cls.execute_select(
-            """
-            SELECT * FROM jobs
-            WHERE user_id = ?
+        result_list: list[JobSkill] = []
+
+        for js in data_list:
+            result_list.append(
+                JobSkill(
+                    id=js[JobSkillsCol.ID],
+                    job_id=js[JobSkillsCol.JOB_ID],
+                    name=js[JobSkillsCol.NAME],
+                    weight=js[JobSkillsCol.WEIGHT],
+                )
+            )
+
+        return result_list
+
+    @classmethod
+    def SELECT_jobs(cls, user_id) -> list[Job]:
+
+        jobs_data = cls.execute_select(
+            f"""
+            SELECT * FROM {JobsCol.TABLE_NAME}
+            WHERE {JobsCol.USER_ID} = ?
             """,
             (user_id,),
         )
+
+        result: list[Job] = []
+
+        for job in jobs_data:
+
+            skill_name_weight: dict[str, int] = {}
+
+            job_skills = cls.SELECT_job_skills(job[JobsCol.ID])
+
+            for skill in job_skills:
+                skill_name_weight[skill.name] = skill.weight
+
+            result.append(
+                Job(
+                    id=job[JobsCol.ID],
+                    user_id=job[JobsCol.USER_ID],
+                    job_title=job[JobsCol.TITLE],
+                    min_edu=job[JobsCol.MIN_EDU],
+                    min_years_exp=job[JobsCol.MIN_YEARS_EXP],
+                    skill_name_weight=skill_name_weight,
+                )
+            )
+
+        return result
 
     # endregion
 
