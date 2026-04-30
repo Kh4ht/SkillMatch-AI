@@ -50,15 +50,17 @@ def parse_resumes_page():
 def add_job_submit():
     job_title = request_form_get("job_title")
     required_skills = request_form_get("required_skills")
+    # required_skills_weight = request_form_get("required_skills_weight")
     min_education = request_form_get("min_edu")
     min_years_exp = request_form_get("min_years_exp")
 
     skill_name_weight: dict[str, int] = {}
 
     required_skills = required_skills.split(",")
+    # required_skills_weight = required_skills_weight.split(",")
 
-    for i in required_skills:
-        skill_name_weight[i.strip()] = 1
+    for name in required_skills:
+        skill_name_weight[name.strip()] = 1
 
     success, error_msg = User.add_job(
         user_id=current_user.id,

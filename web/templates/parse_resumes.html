@@ -198,13 +198,6 @@
     .close:hover {
         color: #000;
     }
-
-
-    .loading {
-        text-align: center;
-        padding: 40px;
-        color: #666;
-    }
 </style>
 
 {% endblock style %}
@@ -410,15 +403,25 @@
     <div class="window-content">
 
         <!-- Add Job & Close Button -->
-        <div class="items-container" style="margin-bottom: 50px;">
+        <div class="items-container" style="margin-bottom: 10px;">
             <h3>Add New Job</h3>
             <span class="close" onclick="toggleWindow('addJob-window')">
                 <i class="fa-solid fa-xmark"></i>
             </span>
         </div>
 
+        <div style="min-height:14px; margin-bottom: 20px">
+            <p id="add-job-window-warning-msg" style="transform-origin: left center;
+                                                               font-size: 12px;
+                                                               color: red;
+                                                               font-weight: bold;
+                                                               ">
+
+            </p>
+        </div>
+
         <form id="addJobForm" action="{{ url_for('parse_resumes.add_job_submit') }}" method="post">
-            <div class="vertical-container" style="margin-bottom: 50px; overflow: hidden;">
+            <div class="vertical-container" style="margin-bottom: 50px; height: 650px">
 
                 <!-- Job Title -->
                 <label>Job Title *</label>
@@ -429,15 +432,6 @@
                 <label>Required Skills (type one then press enter) *</label>
                 <input type="text" id="skill-input" placeholder="e.g., Python">
                 <input type="hidden" name="required_skills" id="skills-hidden">
-                <div style="min-height:14px">
-                    <p id="warning" style="transform-origin: left center;
-                                                       font-size: 12px;
-                                                       color: red;
-                                                       font-weight: bold;
-                                                       ">
-
-                    </p>
-                </div>
 
                 <div id="skills-container"></div>
 
@@ -448,8 +442,37 @@
                 <!-- Required Education -->
                 <label>Minimum Education *</label>
                 <input type="text" name="min_edu" id="min_edu" placeholder="e.g., Bachelor's in Computer Science">
+
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Weight</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>python</td>
+                            <td>25%</td>
+                        </tr>
+                        <tr>
+                            <td>C#</td>
+                            <td>75%</td>
+                        </tr>
+                        <tr>
+                            <td>C#</td>
+                            <td>75%</td>
+                        </tr>
+                        <tr>
+                            <td>C#</td>
+                            <td>75%</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+
+                <button class="btn btn-green" type="submit" style="width: 100%; margin-top: 50px;">Add Job</button>
             </div>
-            <button class="btn btn-green" type="submit" style="width: 100%;">Add Job</button>
         </form>
 
     </div>
@@ -461,5 +484,6 @@
 {% block script %}
 
 <script src="{{ url_for('static', filename='js/parse_resumes.js') }}"></script>
+<script src="{{ url_for('static', filename='js/new_job.js') }}"></script>
 
 {% endblock script %}

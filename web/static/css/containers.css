@@ -43,6 +43,10 @@ div.grid-container {
     flex-direction: column;
     padding: 10px;
     gap: 15px;
+
+    height: auto;
+    flex: 1;
+    min-height: 0;
 }
 
 /* Stacks items horizontally */

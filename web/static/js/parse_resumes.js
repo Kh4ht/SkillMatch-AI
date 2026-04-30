@@ -1,21 +1,12 @@
 // region Variables
 
 const clearSearchInputBtn = document.getElementById('clear_search_btn');
-const searchInput = document.getElementById('search_txt_input');
+const searchCandidatesTableInput = document.getElementById('search_txt_input');
 const candidatesTable = document.getElementById('candidates-table');
 const jobDetailsTable = document.getElementById('job_details_table');
-const maxCharLimit = 30;
-const skillInput = document.getElementById('skill-input');
-const skillContainer = document.getElementById('skills-container');
-const skillHidden = document.getElementById('skills-hidden');
-const warning = document.getElementById('warning');
 const noSearchResultsRow = document.getElementById('no_search_results');
 
 let selectedJobElement = null;
-let skills = [];
-let skillsLowerCase = [];
-let isWarningMsgShowing = false;
-let warningMsgTimeout = null;
 
 // endregion
 
@@ -25,7 +16,7 @@ let warningMsgTimeout = null;
 document.addEventListener('DOMContentLoaded', function()
 {
     // Search as you type
-    searchInput.addEventListener('input', searchTable);
+    searchCandidatesTableInput.addEventListener('input', searchTable);
 
     // Call searchTable on load to set initial button state
     searchTable();
@@ -33,128 +24,9 @@ document.addEventListener('DOMContentLoaded', function()
     setMatchScoreColors();
 });
 
-skillInput.addEventListener('keydown', function(e)
-{
-    if (e.key === 'Enter')
-    {
-        e.preventDefault(); // stop form submit
-
-        const skill = skillInput.value.trim();
-
-        if (skill === '')
-        {
-            return; // do nothing if empty
-        }
-
-        // Add character limit check
-        if (skill.length > maxCharLimit)
-        {
-            showTemporaryMessage(`Maximum ${maxCharLimit} characters allowed!`);
-            return;
-        }
-
-        if (skillsLowerCase.includes(skill.toLowerCase()))
-        {
-            showTemporaryMessage('Skill already added!');
-            return;
-        }
-
-        skills.push(skill);
-        skillsLowerCase.push(skill.toLowerCase());
-
-        renderSkills();
-
-        skillInput.value = '';
-    }
-});
-
-skillInput.addEventListener('input', function(e)
-{
-    // Enforce character limit
-    if (this.value.length > maxCharLimit)
-    {
-        this.value = this.value.slice(0, maxCharLimit);
-        showTemporaryMessage(`Maximum ${maxCharLimit} characters!`);
-    }
-
-    // Remove any special characters (allow only letters, numbers, spaces, and hyphens)
-    let value = this.value;
-
-    // Regex: allows letters (a-z, A-Z), numbers (0-9), spaces, hyphens, and underscores
-    let cleaned = value.replace(/[^a-zA-Z0-9\s\-_#]/g, '');
-
-    if (cleaned !== value)
-    {
-        this.value = cleaned;
-        showTemporaryMessage('Only letters, numbers, spaces, hyphens, and underscores are allowed!');
-    }
-});
-
 // endregion
 
 // region METHODS
-
-// Show temporary warning
-function showTemporaryMessage(msg)
-{
-    // Prevent showing if already showing
-    if (isWarningMsgShowing)
-    {
-        return;
-    }
-
-    isWarningMsgShowing = true;
-
-    // Remove the popup-effect class
-    warning.classList.remove('popup-effect');
-
-    // Force a reflow to restart the animation
-    void warning.offsetWidth;
-
-    warning.style.display = 'block';
-    warning.innerHTML = msg;
-
-    // Re-add the class to trigger animation
-    warning.classList.add('popup-effect');
-
-    // Clear existing timeout
-    if (warningMsgTimeout)
-    {
-        clearTimeout(warningMsgTimeout);
-    }
-
-    warningMsgTimeout = setTimeout(() =>
-    {
-        warning.style.display = 'none';
-        isWarningMsgShowing = false;
-        warningMsgTimeout = null;
-    }, 2000);
-}
-
-function renderSkills()
-{
-    skillContainer.innerHTML = '';
-
-    skills.forEach((skill, i) =>
-    {
-        const tag = document.createElement('span');
-        tag.className = 'skill-tag';
-        tag.innerHTML = `<button class='added-skill' onclick="removeSkill(${i})">${skill}</button>`;
-
-        skillContainer.appendChild(tag);
-    });
-
-    // Store Data In Lower Case
-    skillHidden.value = skillsLowerCase.join(',');
-}
-
-function removeSkill(index)
-{
-    skills.splice(index, 1);
-    skillsLowerCase.splice(index, 1);
-
-    renderSkills();
-}
 
 function setMatchScoreColors()
 {
@@ -179,7 +51,7 @@ function setMatchScoreColors()
 
 function searchTable()
 {
-    const searchTerm = searchInput.value.toLowerCase().trim();
+    const searchTerm = searchCandidatesTableInput.value.toLowerCase().trim();
     const tbody = candidatesTable.querySelector('tbody');
     const rows = tbody.querySelectorAll('tr');
 
@@ -228,9 +100,9 @@ function searchTable()
 
 function clearSearchInput()
 {
-    searchInput.value = '';
+    searchCandidatesTableInput.value = '';
     searchTable();
-    searchInput.focus();
+    searchCandidatesTableInput.focus();
 }
 
 function selectJob(newElement)
