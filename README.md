@@ -1,4 +1,4 @@
-how to start:
+how to setup environment:
 
 python3.11 -m venv .venv311
 <br>
