@@ -1,0 +1,117 @@
+/* Dark mode — applied to <html> so it works before body renders */
+html.dark-mode body {
+    background-color: rgba(10, 10, 20, 0.72);
+    background-blend-mode: multiply;
+}
+
+html.dark-mode .navbar {
+    background: linear-gradient(135deg, #0f1117 0%, #1a1d2e 100%) !important;
+}
+
+html.dark-mode .content-container,
+html.dark-mode .glass {
+    background: rgba(25, 28, 42, 0.88) !important;
+    border-color: rgba(255, 255, 255, 0.08) !important;
+}
+
+html.dark-mode h1,
+html.dark-mode h2,
+html.dark-mode h3,
+html.dark-mode .setting-label strong,
+html.dark-mode .profile-info h1 {
+    color: #e2e8f0 !important;
+}
+
+html.dark-mode p,
+html.dark-mode td,
+html.dark-mode label,
+html.dark-mode .setting-label span,
+html.dark-mode .subtitle {
+    color: #94a3b8 !important;
+}
+
+html.dark-mode .section-title,
+html.dark-mode .about-card h2 {
+    color: #a78bfa !important;
+}
+
+html.dark-mode .about-card {
+    background: rgba(25, 28, 42, 0.88) !important;
+    border-color: rgba(255, 255, 255, 0.08) !important;
+}
+
+html.dark-mode .setting-row {
+    border-bottom-color: rgba(255, 255, 255, 0.08) !important;
+}
+
+html.dark-mode .setting-select,
+html.dark-mode .form-group input {
+    background: rgba(30, 32, 48, 0.95) !important;
+    color: #e2e8f0 !important;
+    border-color: #374151 !important;
+}
+
+html.dark-mode table {
+    background: rgba(25, 28, 42, 0.9) !important;
+}
+
+html.dark-mode thead th {
+    background: linear-gradient(135deg, #1e2235, #0f1117) !important;
+}
+
+html.dark-mode td {
+    color: #cbd5e1 !important;
+    border-bottom-color: rgba(255, 255, 255, 0.06) !important;
+}
+
+html.dark-mode tbody tr:hover {
+    background-color: rgba(255, 255, 255, 0.04) !important;
+}
+
+html.dark-mode tbody tr:nth-child(even) {
+    background-color: rgba(255, 255, 255, 0.02) !important;
+}
+
+html.dark-mode input[type="text"],
+html.dark-mode input[type="search"],
+html.dark-mode input[type="email"],
+html.dark-mode input[type="password"],
+html.dark-mode input[type="number"] {
+    background: rgba(30, 32, 48, 0.95) !important;
+    color: #e2e8f0 !important;
+    border-color: #374151 !important;
+}
+
+html.dark-mode input::placeholder {
+    color: #64748b !important;
+}
+
+html.dark-mode .window-content {
+    background: rgba(25, 28, 42, 0.98) !important;
+}
+
+html.dark-mode .menu-content {
+    background: #1e2235 !important;
+}
+
+html.dark-mode .menu-content a,
+html.dark-mode .menu-content button {
+    color: #e2e8f0 !important;
+}
+
+html.dark-mode .menu-content a:hover,
+html.dark-mode .menu-content button:hover {
+    background: rgba(255, 255, 255, 0.06) !important;
+}
+
+html.dark-mode .team-member {
+    background: rgba(30, 32, 48, 0.8) !important;
+}
+
+html.dark-mode .team-name {
+    color: #e2e8f0 !important;
+}
+
+html.dark-mode .items-container {
+    border-bottom-color: rgba(255, 255, 255, 0.1) !important;
+}
