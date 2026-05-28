@@ -1,0 +1,45 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.pyc
+*.pyo
+*.pyd
+
+# compiled libraries
+*.dylib
+*.dll
+
+# Environment
+.env
+.venv
+.venv311
+venv/
+
+# IDE
+.vscode/
+.idea/
+.DS_Store
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+*.db-journal
+*.db-wal
+*.db-shm 
+instance/
+
+# Uploaded files
+uploads/
+
+# Logs
+*.log
+
+# Environment variables
+.env
+.secrets
+
+# Extensions
+dprint.json

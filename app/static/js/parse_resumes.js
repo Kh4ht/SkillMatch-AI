@@ -1,0 +1,331 @@
+// region Variables
+
+const clearSearchInputBtn = document.getElementById('clear_search_btn');
+
+const searchCandidatesTableInput = document.getElementById('search_txt_input');
+
+const candidatesTable = document.getElementById('candidates-table');
+const jobDetailsTable = document.getElementById('job_details_table');
+
+const noSearchResultsRow = document.getElementById('no_search_results');
+
+const selectedJobIDHiddenInput = document.getElementById('selected_job_id');
+
+let selectedJobElement = null;
+
+// endregion
+
+// region EVENT LISTENERS
+
+document.addEventListener('DOMContentLoaded', () =>
+{
+    const lastJobId = sessionStorage.getItem('lastSelectedJobId');
+    if (lastJobId)
+    {
+        const jobCard = document.querySelector(`.job-card[data-job-id="${lastJobId}"]`);
+        if (jobCard)
+        {
+            selectJob(jobCard);
+        }
+    }
+
+    attachCheckboxListeners();
+});
+
+// endregion
+
+// region setMatchScoreColors
+
+function setMatchScoreColors()
+{
+    const scoreCells = document.querySelectorAll('.match-score');
+
+    scoreCells.forEach((cell) =>
+    {
+        const score = parseFloat(cell.textContent);
+
+        if (!isNaN(score))
+        {
+            const ratio = Math.min(100, Math.max(0, score)) / 100;
+
+            const red = Math.floor(255 * clamp(1 - ratio, 0, 0.45) * 2); // 0.5 to 1 maps to 255-0 red and 0 to 0.5 maps to 255 red
+
+            const green = Math.floor(255 * clamp(ratio, 0, 0.45) * 2); // 0 to 0.5 maps to 0-255 green and 0.5 to 1 maps to 255 green
+
+            cell.style.color = `rgb(${red}, ${green}, 0)`;
+        }
+    });
+}
+
+// endregion
+// region searchTable
+
+function searchTable()
+{
+    const searchTerm = searchCandidatesTableInput.value.toLowerCase().trim();
+    const tbody = candidatesTable.querySelector('tbody');
+    const rows = tbody.querySelectorAll('tr');
+
+    let hasMatches = false;
+
+    rows.forEach((row) =>
+    {
+        // Skip the "no results" row
+        if (row.id === 'noResultsRow')
+        {
+            return;
+        }
+
+        // Get all text content from the row (excluding the checkbox column)
+        const cells = row.querySelectorAll('td:not(.checkbox-col)');
+        let rowText = '';
+
+        cells.forEach((cell) =>
+        {
+            rowText += cell.textContent.toLowerCase() + ' ';
+        });
+
+        // Check if search term matches any content in the row
+        if (searchTerm === '' || rowText.includes(searchTerm))
+        {
+            row.style.display = ''; // Show row
+            hasMatches = true;
+        } else
+        {
+            row.style.display = 'none'; // Hide row
+        }
+    });
+
+    // Update clear button disabled state
+    clearSearchInputBtn.disabled = searchTerm === '';
+
+    if (!hasMatches)
+    {
+        noSearchResultsRow.style.display = 'block';
+    } else
+    {
+        noSearchResultsRow.style.display = 'none';
+    }
+    // Optional: Show "no results" message
+}
+
+// endregion
+// region selectJob
+
+function selectJob(newElement)
+{
+    // Do Nothing If The Selected Job Card Is Reselected.
+    if (selectedJobElement === newElement) return;
+
+    selectedJobElement = newElement;
+    selectedJobIDHiddenInput.value = selectedJobElement.dataset.jobId;
+
+    // Update active state in UI
+    document.querySelectorAll('.job-card').forEach(card =>
+    {
+        card.classList.remove('active');
+    });
+    selectedJobElement.classList.add('active');
+
+    // Get all data from data attributes
+    const jobData = {
+        id: selectedJobElement.dataset.jobId,
+        job_title: selectedJobElement.dataset.jobTitle,
+        min_years_exp: selectedJobElement.dataset.minYearsExp,
+        min_edu: selectedJobElement.dataset.minEdu,
+        min_edu_weight: selectedJobElement.dataset.minEduWeight,
+        min_exp_weight: selectedJobElement.dataset.minExpWeight,
+        skill_name_weight: JSON.parse(selectedJobElement.dataset.skills),
+    };
+
+    // Update UI
+    updateJobDetailsTable(jobData);
+    updateCandidatesTable();
+
+    sessionStorage.setItem('lastSelectedJobId', selectedJobIDHiddenInput.value);
+}
+
+// endregion
+// region updateCandidatesTable
+
+function updateCandidatesTable()
+{
+    const candidates = JSON.parse(selectedJobElement.dataset.candidates);
+    const selectedJobId = selectedJobElement.dataset.jobId;
+
+    // Get the table body
+    const tbody = candidatesTable.querySelector('tbody');
+
+    // Clear existing rows
+    tbody.innerHTML = '';
+
+    if (!candidates)
+    {
+        const noCandidatesRow = tbody.insertRow();
+        noCandidatesRow.id = 'noResultsRow';
+        noCandidatesRow.style.display = 'table-row';
+        const cell = noCandidatesRow.insertCell(0);
+        cell.colSpan = 999999;
+        cell.textContent = 'Error loading candidates for this job.';
+        cell.style.textAlign = 'center';
+    }
+
+    if (candidates.length === 0)
+    {
+        const noCandidatesRow = tbody.insertRow();
+        noCandidatesRow.id = 'noResultsRow';
+        noCandidatesRow.style.display = 'table-row';
+        const cell = noCandidatesRow.insertCell(0);
+        cell.colSpan = 999999;
+        cell.textContent = 'No candidates found for this job.';
+        cell.style.textAlign = 'center';
+        return;
+    }
+    // Add new rows for candidates
+    candidates.forEach(candidate =>
+    {
+        const row = tbody.insertRow();
+
+        row.insertCell(0).innerHTML =
+            `<input type="checkbox" class="candidate-checkbox" data-candidate-id="${candidate.id}">`;
+
+        row.insertCell(1).textContent = candidate.name || 'N/A';
+        row.insertCell(2).textContent = candidate.email || 'N/A';
+        row.insertCell(3).textContent = candidate.phone || 'N/A';
+
+        // View Resume link/button - Fixed to route via Candidate ID (100% Guaranteed)
+        const resumeCell = row.insertCell(4);
+        if (candidate.id)
+        {
+            const resumeLink = document.createElement('a');
+            // We pass the candidate ID which is verified in console log
+            resumeLink.href = `/parse_resumes/view_resume/${candidate.id}`;
+            resumeLink.textContent = 'View';
+            resumeLink.className = 'view-btn';
+            resumeLink.target = '_blank';
+            resumeLink.style.textDecoration = 'none';
+            resumeCell.appendChild(resumeLink);
+        } else
+        {
+            resumeCell.textContent = 'N/A';
+        }
+        row.insertCell(5).textContent = candidate.education || 'N/A';
+        row.insertCell(6).textContent = candidate.experience + ' years' || 'N/A';
+        row.insertCell(7).textContent = candidate.skills || 'N/A';
+
+        const matchCell = row.insertCell(8);
+        matchCell.textContent = candidate.match_score ? `${candidate.match_score}` : '0';
+        matchCell.className = 'match-score';
+    });
+
+    setMatchScoreColors();
+    attachCheckboxListeners();
+}
+
+// endregion
+// region updateJobDetailsTable
+
+function updateJobDetailsTable(jobData)
+{
+    // Get the table body
+    const tbody = jobDetailsTable.querySelector('tbody');
+
+    // Clear existing rows
+    tbody.innerHTML = '';
+
+    // Get skills as array of [skill_name, weight]
+    const skills = Object.entries(jobData.skill_name_weight || {});
+
+    // Add Skills section with rowspan
+    if (skills.length > 0)
+    {
+        // First skill row with rowspan
+        const firstSkillRow = tbody.insertRow();
+        firstSkillRow.style.backgroundColor = '#f8f9fa';
+        const skillCategoryCell = firstSkillRow.insertCell(0);
+        skillCategoryCell.rowSpan = skills.length;
+        skillCategoryCell.innerHTML = '<strong>Skills</strong>';
+
+        // First skill
+        firstSkillRow.insertCell(1).textContent = skills[0][0];
+        firstSkillRow.insertCell(2).textContent = `${skills[0][1]}%`;
+
+        // Remaining skills
+        for (let i = 1; i < skills.length; i++)
+        {
+            const skillRow = tbody.insertRow();
+            skillRow.style.backgroundColor = '#f8f9fa';
+            // skillRow.insertCell(0); // Empty cell (because of rowspan)
+            skillRow.insertCell(0).textContent = skills[i][0];
+            skillRow.insertCell(1).textContent = `${skills[i][1]}%`;
+        }
+    } else
+    {
+        // No skills case
+        const noSkillsRow = tbody.insertRow();
+        noSkillsRow.style.backgroundColor = '#f8f9fa';
+        noSkillsRow.insertCell(0).innerHTML = '<strong>Skills</strong>';
+        noSkillsRow.insertCell(1).textContent = 'No skills specified';
+        noSkillsRow.insertCell(2).textContent = '0%';
+    }
+
+    // Add Experience row
+    const expRow = tbody.insertRow();
+    expRow.style.backgroundColor = 'white';
+    expRow.insertCell(0).innerHTML = '<strong>Experience</strong>';
+    expRow.insertCell(1).textContent = `${jobData.min_years_exp}+ years`;
+    expRow.insertCell(2).textContent = `${jobData.min_exp_weight}%`;
+
+    // Add Education row
+    const eduRow = tbody.insertRow();
+    eduRow.style.backgroundColor = '#f8f9fa';
+    eduRow.insertCell(0).innerHTML = '<strong>Education</strong>';
+    eduRow.insertCell(1).textContent = jobData.min_edu || 'Not specified';
+    eduRow.insertCell(2).textContent = `${jobData.min_edu_weight}%`;
+}
+
+// endregion
+// region getSelectedCandidatesIds
+
+function getSelectedCandidatesIds()
+{
+    const checkboxes = candidatesTable.querySelectorAll('.candidate-checkbox:checked');
+    const candidateIdsToDelete = Array.from(checkboxes).map(cb => cb.dataset.candidateId);
+
+    if (candidateIdsToDelete.length === 0) return;
+
+    return candidateIdsToDelete.join(',');
+}
+
+// endregion
+// region attachCheckboxListeners
+
+function attachCheckboxListeners()
+{
+    const checkboxes = candidatesTable.querySelectorAll('.candidate-checkbox');
+
+    checkboxes.forEach(checkbox =>
+    {
+        checkbox.removeEventListener('change', updateDeleteButtonState);
+        checkbox.addEventListener('change', updateDeleteButtonState);
+    });
+
+    // Call initially to set correct button state
+    updateDeleteButtonState();
+}
+
+// endregion
+// region updateDeleteButtonState
+
+function updateDeleteButtonState()
+{
+    const deleteButton = document.getElementById('delete-candidate-submit-button');
+    const selectedCheckboxes = candidatesTable.querySelectorAll('.candidate-checkbox:checked');
+
+    if (deleteButton)
+    {
+        deleteButton.disabled = selectedCheckboxes.length === 0;
+    }
+}
+
+// endregion

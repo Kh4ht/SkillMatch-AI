@@ -1,0 +1,298 @@
+# region IMPORTS
+
+# Standard Library Imports
+import os
+import re
+import warnings
+import pdfplumber
+from PyPDF2 import PdfReader
+from docx import Document
+import spacy
+from spacy.matcher import PhraseMatcher
+
+# Local Imports
+from ..utils.utils import Utils
+
+# endregion
+
+sample_skills_list = [
+    "python",
+    "java",
+    "c++",
+    "sql",
+    "machine learning",
+    "deep learning",
+    "tensorflow",
+    "pytorch",
+    "nlp",
+    "data analysis",
+    "excel",
+    "power bi",
+]
+
+try:
+    nlp = spacy.load("en_core_web_sm")
+except OSError:
+    warnings.warn("spaCy model 'en_core_web_sm' not found. Downloading...")
+    import subprocess
+    import sys
+
+    subprocess.run([sys.executable, "-m", "spacy", "download", "en_core_web_sm"])
+    nlp = spacy.load("en_core_web_sm")
+
+
+def normalize_skill(skill: str):
+    return skill.lower().strip()
+
+
+class Extractors:
+    """Functions to extract text and info from resumes."""
+
+    # region TEXT EXTRACTION
+
+    @staticmethod
+    def extract_text_from_file(file) -> tuple[bool, str]:
+        """Extract raw text from PDF or DOCX files using advanced layout reading."""
+        try:
+            filename = getattr(file, "filename", "").lower()
+
+            # If the file is a Word document (docx)
+            if filename.endswith(".docx"):
+                doc = Document(file)
+                text = "\n".join([paragraph.text for paragraph in doc.paragraphs])
+                return (True, text.strip())
+
+            # If the file is a PDF document, use pdfplumber to maintain structural layout
+            else:
+                # Use seek(0) to ensure reading from the beginning of the stream
+                file.seek(0)
+                text = ""
+                with pdfplumber.open(file) as pdf:
+                    for page in pdf.pages:
+                        page_text = page.extract_text(layout=False)
+                        if page_text:
+                            text += page_text + "\n"
+                return (True, text.strip())
+
+        except Exception as e:
+            return (False, f"Error extracting text: {e}")
+
+    # endregion
+    # #####################################################################
+
+    # #####################################################################
+    # region EMAIL
+
+    @staticmethod
+    def extract_email(text: str) -> str:
+        pattern = r"[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+"
+        emails = re.findall(pattern, text)
+        return emails[0] if emails else Utils.UNKNOWN
+
+    # endregion
+    # #####################################################################
+
+    # #####################################################################
+    # region PHONE
+
+    @staticmethod
+    def extract_phone(text: str) -> str:
+        """Extract phone number"""
+        patterns = [
+            r"\+?[\d\s\-\(\)]{10,20}",
+            r"\d{3}[-\.\s]?\d{3}[-\.\s]?\d{4}",
+            r"\(\d{3}\)\s*\d{3}-\d{4}",
+            r"07\d{8}",
+        ]
+
+        for pattern in patterns:
+            match = re.search(pattern, text)
+            if match:
+                phone = match.group()
+                phone = " ".join(phone.split())
+                return phone
+
+        return "unknown"
+
+    # endregion
+    # #####################################################################
+
+    # #####################################################################
+    # region SKILLS
+
+    @staticmethod
+    def extract_skills(
+        text: str, skill_abbreviations_dict: dict[str, list[str]]
+    ) -> list[str]:
+        """
+        Extracts valid skills from the resume text by filtering lines under the 'Skills'
+        section and matching them safely against the targeted job requirements skills.
+        """
+        if not text:
+            return []
+
+        text_lower = text.lower()
+        lines = [
+            line.strip().lower() for line in text_lower.split("\n") if line.strip()
+        ]
+
+        extracted_candidate_words = set()
+        inside_skills_section = False
+
+        # Section markers that signify the end of the skills block
+        stop_words = [
+            "experience",
+            "education",
+            "projects",
+            "languages",
+            "certifications",
+            "summary",
+            "academic",
+        ]
+
+        # Phase 1: Contextual extraction (Scan lines around the skills section)
+        for i, line in enumerate(lines):
+            if "skills" in line:
+                inside_skills_section = True
+                continue
+
+            if inside_skills_section:
+                # Break immediately if a clear new section header is encountered
+                if any(stop in line for stop in stop_words):
+                    break
+
+                # Clean bullet points and add to potential candidate words
+                cleaned_line = re.sub(r"^[•\-\*]\s*", "", line).strip()
+                if (
+                    cleaned_line and len(cleaned_line.split()) <= 4
+                ):  # Protect against large paragraphs
+                    extracted_candidate_words.add(cleaned_line)
+
+        # Phase 2: Precise cross-matching with job requirements to filter out multi-column text noise
+        final_matched_skills = set()
+
+        # If a job specific skills dict is provided, filter using strict matching rules
+        if skill_abbreviations_dict:
+            for main_skill in skill_abbreviations_dict.keys():
+                norm_skill = main_skill.lower().strip()
+                escaped_skill = re.escape(norm_skill)
+                pattern = rf"(?:^|[\s,.:;()\-?/])({escaped_skill})(?:$|[\s,.:;()\-?/])"
+
+                # Check if it was caught in our dynamic block OR exists anywhere in raw text boundaries
+                if norm_skill in extracted_candidate_words or re.search(
+                    pattern, text_lower
+                ):
+                    final_matched_skills.add(main_skill)
+        else:
+            # Fallback if no job dict is passed: only allow short phrase lines (clean keywords)
+            final_matched_skills = {
+                s.title() for s in extracted_candidate_words if len(s.split()) <= 3
+            }
+
+        return sorted(list(final_matched_skills))
+
+    # endregion
+    # #####################################################################
+
+    # #####################################################################
+    # region EDUCATION
+
+    @staticmethod
+    def extract_education(text: str) -> str:
+        text_lower = text.lower()
+        lines = [line.strip() for line in text_lower.split("\n") if line.strip()]
+
+        # البحث إذا كانت الكلمة في السطر التالي لعنوان التعليم
+        for i, line in enumerate(lines):
+            if "education" in line and i + 1 < len(lines):
+                next_line = lines[i + 1]
+                for word in Utils.EDUCATION_WORDS:
+                    if word in next_line:
+                        return word
+
+        # فحص شامل كخيار احتياطي
+        result: str = "none"
+        c = Utils.EDUCATION_WORDS["none"]
+        for line in lines:
+            for word in Utils.EDUCATION_WORDS:
+                if word in line:
+                    if Utils.EDUCATION_WORDS[word] > c:
+                        result = word
+        return result
+
+    # endregion
+    # #####################################################################
+
+    # #####################################################################
+    # region NAME
+
+    @staticmethod
+    def extract_name(text: str) -> str:
+        """Extract name by safely removing labels and cleaning multi-column artifacts."""
+        lines = [line.strip() for line in text.split("\n") if line.strip()]
+        if not lines:
+            return "unknown"
+
+        for i, line in enumerate(lines[:5]):
+            # 1. If the name is explicitly labeled inline
+            if re.search(r"^(full\s+)?name\s*:\s*", line, flags=re.IGNORECASE):
+                clean_line = re.sub(
+                    r"^(full\s+)?name\s*:\s*", "", line, flags=re.IGNORECASE
+                ).strip()
+                if clean_line:
+                    return clean_line
+
+            # 2. If the line contains only the label
+            if line.lower().strip() in ["full name:", "name:", "full name", "name"]:
+                if i + 1 < len(lines):
+                    return lines[i + 1]
+
+        # 3. Handle messy lines by extracting the first 2 to 3 alphabetical words (Standard Name)
+        first_line = lines[0]
+        # Clean inline symbols like pipelines | or emails often found next to names in PDF extraction
+        clean_first_line = first_line.split("|")[0].split(",")[0].strip()
+        words = clean_first_line.split()
+        if len(words) >= 1:
+            return " ".join(words[:3])
+
+        return "unknown"
+
+    # endregion
+    # #####################################################################
+
+    # #####################################################################
+    # region EXPERIENCE
+
+    @staticmethod
+    def extract_experience_years(text: str) -> int:
+        """Extract experience years handling inline or next-line format."""
+        text_lower = text.lower()
+        lines = [line.strip() for line in text_lower.split("\n") if line.strip()]
+
+        # 1. فحص السطر التالي مباشرة بعد كلمة Experience (مثل ملف الورد)
+        for i, line in enumerate(lines):
+            if "experience" in line and i + 1 < len(lines):
+                next_line = lines[i + 1]
+                match = re.search(r"(\d+)", next_line)
+                if match:
+                    return int(match.group(1))
+
+        # 2. فحص الأنماط المدمجة في نفس السطر (للـ PDF)
+        patterns = [
+            r"(\d+)\s*[-+]*\s*years?\s+of\s+experience",
+            r"(\d+)\s*[-+]*\s*years?\s+experience",
+            r"experience\s*:\s*(\d+)\s*years?",
+            r"(\d+)\s*[-+]*\s*years?\s+exp",
+        ]
+
+        for pattern in patterns:
+            match = re.search(pattern, text_lower)
+            if match:
+                try:
+                    return int(match.group(1))
+                except ValueError:
+                    continue
+
+        return 0
+
+    # endregion
