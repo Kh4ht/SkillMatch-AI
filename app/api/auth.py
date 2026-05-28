@@ -184,7 +184,9 @@ def profile_delete_account():
     success, msg = current_user.delete_account()
     if success:
         logout_user()
-        return jsonify({"success": True, "message": msg, "redirect": url_for("auth.register_page")})
+        return jsonify(
+            {"success": True, "message": msg, "redirect": url_for("auth.register_page")}
+        )
     return jsonify({"success": False, "message": msg})
 
 

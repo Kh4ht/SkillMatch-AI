@@ -68,8 +68,16 @@ html.dark-mode tbody tr:hover {
     background-color: rgba(255, 255, 255, 0.04) !important;
 }
 
+html.dark-mode tbody tr:nth-child(odd) {
+    background-color: rgba(20, 25, 40, 0.95) !important;
+}
+
 html.dark-mode tbody tr:nth-child(even) {
-    background-color: rgba(255, 255, 255, 0.02) !important;
+    background-color: rgba(30, 35, 50, 0.95) !important;
+}
+
+html.dark-mode tbody tr:hover {
+    background-color: rgba(59, 130, 246, 0.15) !important;
 }
 
 html.dark-mode input[type="text"],
