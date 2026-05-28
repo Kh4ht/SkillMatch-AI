@@ -17,13 +17,10 @@ class Config:
     MAX_CONTENT_LENGTH = 16 * 1024 * 1024
 
     # Allowed file extensions for resume uploads in lowercase
-    ALLOWED_EXTENSIONS = {
-        "pdf",
-        "doc",
-        "docx"
-    }
+    ALLOWED_EXTENSIONS = {"pdf", "doc", "docx"}
 
     # Create upload directory if it doesn't exist
     @staticmethod
-    def init_upload_folder():
+    def init_project_folders():
+        os.makedirs(Config.INSTANCE_FOLDER, exist_ok=True)
         os.makedirs(Config.UPLOAD_FOLDER, exist_ok=True)

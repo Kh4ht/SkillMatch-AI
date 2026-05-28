@@ -37,10 +37,10 @@ def create_app():
         static_folder=os.path.join(Config.PROJECT_ROOT, "app", "static"),
     )
 
+    # Initialize upload folder
+    Config.init_project_folders()
     # Initialize database
     Database.init_db()
-    # Initialize upload folder
-    Config.init_upload_folder()
 
     app.secret_key = "dev-key-please-change-in-production"
 
