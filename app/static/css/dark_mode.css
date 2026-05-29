@@ -84,13 +84,15 @@ html.dark-mode input[type="text"],
 html.dark-mode input[type="search"],
 html.dark-mode input[type="email"],
 html.dark-mode input[type="password"],
-html.dark-mode input[type="number"] {
+html.dark-mode input[type="number"],
+html.dark-mode textarea {
     background: rgba(30, 32, 48, 0.95) !important;
     color: #e2e8f0 !important;
     border-color: #374151 !important;
 }
 
-html.dark-mode input::placeholder {
+html.dark-mode input::placeholder,
+html.dark-mode textarea::placeholder {
     color: #64748b !important;
 }
 
