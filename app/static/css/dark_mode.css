@@ -23,7 +23,7 @@ html.dark-mode .profile-info h1 {
 }
 
 html.dark-mode p,
-html.dark-mode td,
+html.dark-mode td:not(.match-score),
 html.dark-mode label,
 html.dark-mode .setting-label span,
 html.dark-mode .subtitle {
@@ -59,7 +59,7 @@ html.dark-mode thead th {
     background: linear-gradient(135deg, #1e2235, #0f1117) !important;
 }
 
-html.dark-mode td {
+html.dark-mode td:not(.match-score) {
     color: #cbd5e1 !important;
     border-bottom-color: rgba(255, 255, 255, 0.06) !important;
 }
