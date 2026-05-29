@@ -25,6 +25,7 @@ class Job:
         id: int,
         user_id: int,
         job_title: str,
+        job_description: str,
         min_edu: str,
         min_years_exp: int,
         skillname_skillweight_dict: dict[str, int],
@@ -34,6 +35,7 @@ class Job:
         self.id = id
         self.user_id = user_id
         self.job_title = job_title
+        self.job_description = job_description
         self.min_edu = min_edu
         self.min_years_exp = min_years_exp
         self.skillname_skillweight_dict = skillname_skillweight_dict
@@ -253,6 +255,7 @@ class User(UserMixin):
     def add_job(
         self,
         job_title: str,
+        job_description: str,
         min_edu: str,
         min_years_exp: int,
         min_edu_weight: int,
@@ -261,14 +264,12 @@ class User(UserMixin):
     ) -> tuple[bool, str]:
         """Add a new job for the user"""
 
-        if not skill_name_weight:
-            return False, "At Least One Skill Is Required For The Job"
-
         from .database import Database
 
         return Database.INSERT_job(
             user_id=self.id,
             job_title=job_title,
+            job_description=job_description,
             min_edu=min_edu,
             min_years_exp=min_years_exp,
             min_edu_weight=min_edu_weight,

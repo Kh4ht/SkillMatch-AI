@@ -72,6 +72,7 @@ class JobsCol:
     ID = "id"
     USER_ID = "user_id"
     TITLE = "title"
+    DESCRIPTION = "description"
     MIN_EDU = "min_edu"
     MIN_YEARS_EXP = "min_years_exp"
     MIN_EDU_WEIGHT = "min_edu_weight"
@@ -86,6 +87,7 @@ class JobsCol:
         ID,
         USER_ID,
         TITLE,
+        DESCRIPTION,
         MIN_EDU,
         MIN_YEARS_EXP,
         MIN_EDU_WEIGHT,

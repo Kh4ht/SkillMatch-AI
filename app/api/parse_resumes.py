@@ -55,30 +55,32 @@ def parse_resumes_page():
 
 @parse_resumes_bp.route("/add_job", methods=["POST"])
 def add_job_submit():
-    required_skills = Utils.request_form_get_as_list("required_skills")
-    required_skills_weight = Utils.request_form_get_as_int_list(
-        "required_skills_weight"
+    job_title       = Utils.request_form_get("job_title")
+    job_description = Utils.request_form_get("job_description")
+
+    if not job_title or not job_title.strip():
+        flash("Job title is required.", "error")
+        return redirect("/parse_resumes")
+
+    if not job_description or not job_description.strip():
+        flash("Job description is required so the system can auto-extract skills and requirements.", "error")
+        return redirect("/parse_resumes")
+
+    # Auto-extract skills, education, experience, and weights from the JD
+    from .models.ats_scorer import auto_extract_job_requirements
+    auto = auto_extract_job_requirements(
+        job_description=job_description,
+        job_title=job_title,
     )
-
-    min_years_exp = Utils.request_form_get_as_int("min_years_exp")
-    min_education_weight = Utils.request_form_get_as_int("min_education_weight")
-    min_years_exp_weight = Utils.request_form_get_as_int("min_years_exp_weight")
-
-    job_title = Utils.request_form_get("job_title")
-    min_education = Utils.request_form_get("min_edu")
-
-    skill_name_weight: dict[str, int] = {}
-
-    for name, weight in zip(required_skills, required_skills_weight):
-        skill_name_weight[name] = weight
 
     success, error_msg = current_user.add_job(
         job_title=job_title,
-        min_edu=min_education,
-        min_years_exp=min_years_exp,
-        min_edu_weight=min_education_weight,
-        min_exp_weight=min_years_exp_weight,
-        skill_name_weight=skill_name_weight,
+        job_description=job_description,
+        min_edu=auto["min_edu"],
+        min_years_exp=auto["min_years_exp"],
+        min_edu_weight=auto["min_edu_weight"],
+        min_exp_weight=auto["min_exp_weight"],
+        skill_name_weight=auto["skills"],
     )
 
     if success:
@@ -153,14 +155,14 @@ def add_candidates_submit():
                     file_text, target_job.skillname_skillweight_dict
                 )
 
-                # 2. Calculate the advanced match score using TF-IDF + BM25 + Semantic NER ensemble
+                # 2. Calculate the advanced match score using TF-IDF + BM25 + spaCy NER ensemble
                 calculated_score = advanced_score(
                     extracted_skills=extracted_skills_list,
                     extracted_education=extracted_education,
                     extracted_experience=extracted_experience,
                     job_requirements=target_job,
-                    resume_text=file_text,        # enables TF-IDF + BM25
-                    job_description_text=" ".join(target_job.skillname_skillweight_dict.keys()),      # optionally pass JD text
+                    resume_text=file_text,
+                    job_description_text=target_job.job_description,  # real JD text
                 )
 
                 # 3. Insert candidate: Pass extracted_skills_list directly as a list to avoid double-join artifacts

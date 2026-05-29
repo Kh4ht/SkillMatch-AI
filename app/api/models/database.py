@@ -79,10 +79,11 @@ class Database:
                     {JobsCol.ID} INTEGER PRIMARY KEY AUTOINCREMENT,
                     {JobsCol.USER_ID} INTEGER NOT NULL,
                     {JobsCol.TITLE} TEXT NOT NULL,
-                    {JobsCol.MIN_EDU} TEXT NOT NULL,
-                    {JobsCol.MIN_YEARS_EXP} INTEGER NOT NULL,
-                    {JobsCol.MIN_EDU_WEIGHT} INTEGER DEFAULT 1,
-                    {JobsCol.MIN_EXP_WEIGHT} INTEGER DEFAULT 1,
+                    {JobsCol.DESCRIPTION} TEXT DEFAULT '',
+                    {JobsCol.MIN_EDU} TEXT NOT NULL DEFAULT 'none',
+                    {JobsCol.MIN_YEARS_EXP} INTEGER NOT NULL DEFAULT 0,
+                    {JobsCol.MIN_EDU_WEIGHT} INTEGER DEFAULT 10,
+                    {JobsCol.MIN_EXP_WEIGHT} INTEGER DEFAULT 20,
                     {JobsCol.CREATED_AT} TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                     {JobsCol.UPDATED_AT} TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                     FOREIGN KEY ({JobsCol.USER_ID}) REFERENCES {UsersCol.TABLE_NAME}({UsersCol.ID}) ON DELETE CASCADE
@@ -107,8 +108,8 @@ class Database:
                     {CandidatesCol.JOB_ID} INTEGER NOT NULL,
                     {CandidatesCol.USER_ID} INTEGER NOT NULL,
                     {CandidatesCol.NAME} TEXT NOT NULL,
-                    {CandidatesCol.EMAIL} TEXT UNIQUE NOT NULL,
-                    {CandidatesCol.PHONE} TEXT UNIQUE NOT NULL,
+                    {CandidatesCol.EMAIL} TEXT NOT NULL,
+                    {CandidatesCol.PHONE} TEXT NOT NULL,
                     {CandidatesCol.FILENAME} TEXT,
                     {CandidatesCol.ORIGINAL_FILENAME} TEXT,
                     {CandidatesCol.FILE_PATH} TEXT,
@@ -118,7 +119,9 @@ class Database:
                     {CandidatesCol.EXPERIENCE} INTEGER,
                     {CandidatesCol.MATCH_SCORE} REAL,
                     {CandidatesCol.CREATED_AT} TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    FOREIGN KEY ({CandidatesCol.JOB_ID}) REFERENCES {JobsCol.TABLE_NAME}({JobsCol.ID}) ON DELETE CASCADE
+                    FOREIGN KEY ({CandidatesCol.JOB_ID}) REFERENCES {JobsCol.TABLE_NAME}({JobsCol.ID}) ON DELETE CASCADE,
+                    UNIQUE ({CandidatesCol.JOB_ID}, {CandidatesCol.EMAIL}),
+                    UNIQUE ({CandidatesCol.JOB_ID}, {CandidatesCol.PHONE})
                 )
             """)
 
@@ -165,6 +168,16 @@ class Database:
                 f"CREATE INDEX IF NOT EXISTS idx_jobs_title ON {JobsCol.TABLE_NAME}({JobsCol.TITLE})"
             )
 
+            # Migration: add description column to existing databases that don't have it yet
+            existing_cols = [
+                row[1]
+                for row in conn.execute(f"PRAGMA table_info({JobsCol.TABLE_NAME})").fetchall()
+            ]
+            if JobsCol.DESCRIPTION not in existing_cols:
+                conn.execute(
+                    f"ALTER TABLE {JobsCol.TABLE_NAME} ADD COLUMN {JobsCol.DESCRIPTION} TEXT DEFAULT ''"
+                )
+
             # Job skills indexes
             conn.execute(
                 f"CREATE INDEX IF NOT EXISTS idx_job_skills_job_id ON {JobSkillsCol.TABLE_NAME}({JobSkillsCol.JOB_ID})"
@@ -183,6 +196,39 @@ class Database:
             conn.execute(
                 f"CREATE INDEX IF NOT EXISTS idx_candidates_match_score ON {CandidatesCol.TABLE_NAME}({CandidatesCol.MATCH_SCORE})"
             )
+
+            # Migration: fix global UNIQUE on email/phone → per-job UNIQUE(job_id, email/phone)
+            # SQLite cannot ALTER constraints, so we rebuild the table if it still has the old schema.
+            old_schema = conn.execute(
+                f"SELECT sql FROM sqlite_master WHERE type='table' AND name='{CandidatesCol.TABLE_NAME}'"
+            ).fetchone()
+            if old_schema and "email text unique" in (old_schema[0] or "").lower():
+                conn.execute(f"ALTER TABLE {CandidatesCol.TABLE_NAME} RENAME TO _candidates_old")
+                conn.execute(f"""
+                    CREATE TABLE {CandidatesCol.TABLE_NAME} (
+                        {CandidatesCol.ID} INTEGER PRIMARY KEY AUTOINCREMENT,
+                        {CandidatesCol.JOB_ID} INTEGER NOT NULL,
+                        {CandidatesCol.USER_ID} INTEGER NOT NULL,
+                        {CandidatesCol.NAME} TEXT NOT NULL,
+                        {CandidatesCol.EMAIL} TEXT NOT NULL,
+                        {CandidatesCol.PHONE} TEXT NOT NULL,
+                        {CandidatesCol.FILENAME} TEXT,
+                        {CandidatesCol.ORIGINAL_FILENAME} TEXT,
+                        {CandidatesCol.FILE_PATH} TEXT,
+                        {CandidatesCol.FILE_SIZE} REAL,
+                        {CandidatesCol.EDUCATION} TEXT,
+                        {CandidatesCol.SKILLS} TEXT,
+                        {CandidatesCol.EXPERIENCE} INTEGER,
+                        {CandidatesCol.MATCH_SCORE} REAL,
+                        {CandidatesCol.CREATED_AT} TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        FOREIGN KEY ({CandidatesCol.JOB_ID}) REFERENCES {JobsCol.TABLE_NAME}({JobsCol.ID}) ON DELETE CASCADE,
+                        UNIQUE ({CandidatesCol.JOB_ID}, {CandidatesCol.EMAIL}),
+                        UNIQUE ({CandidatesCol.JOB_ID}, {CandidatesCol.PHONE})
+                    )
+                """)
+                conn.execute(f"INSERT INTO {CandidatesCol.TABLE_NAME} SELECT * FROM _candidates_old")
+                conn.execute("DROP TABLE _candidates_old")
+                print("✓ Migrated candidates table: global email/phone UNIQUE → per-job UNIQUE")
 
             conn.commit()
             print("✓ Database initialized successfully with all tables and triggers")
@@ -425,6 +471,7 @@ class Database:
         cls,
         user_id: int,
         job_title: str,
+        job_description: str,
         min_edu: str,
         min_years_exp: int,
         min_edu_weight: int,
@@ -443,12 +490,13 @@ class Database:
             cursor.execute(
                 f"""
                 INSERT INTO {JobsCol.TABLE_NAME}
-                ({JobsCol.USER_ID}, {JobsCol.TITLE}, {JobsCol.MIN_EDU}, {JobsCol.MIN_YEARS_EXP}, {JobsCol.MIN_EDU_WEIGHT}, {JobsCol.MIN_EXP_WEIGHT})
-                VALUES (?, ?, ?, ?, ?, ?)
+                ({JobsCol.USER_ID}, {JobsCol.TITLE}, {JobsCol.DESCRIPTION}, {JobsCol.MIN_EDU}, {JobsCol.MIN_YEARS_EXP}, {JobsCol.MIN_EDU_WEIGHT}, {JobsCol.MIN_EXP_WEIGHT})
+                VALUES (?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     user_id,
                     job_title,
+                    job_description,
                     min_edu,
                     min_years_exp,
                     min_edu_weight,
@@ -540,6 +588,7 @@ class Database:
                     id=job[JobsCol.ID],
                     user_id=job[JobsCol.USER_ID],
                     job_title=job[JobsCol.TITLE],
+                    job_description=job[JobsCol.DESCRIPTION] or "",
                     min_edu=job[JobsCol.MIN_EDU],
                     min_years_exp=job[JobsCol.MIN_YEARS_EXP],
                     skillname_skillweight_dict=skill_name_weight,
@@ -575,6 +624,7 @@ class Database:
             id=job_data[JobsCol.ID],
             user_id=job_data[JobsCol.USER_ID],
             job_title=job_data[JobsCol.TITLE],
+            job_description=job_data[JobsCol.DESCRIPTION] or "",
             min_edu=job_data[JobsCol.MIN_EDU],
             min_years_exp=job_data[JobsCol.MIN_YEARS_EXP],
             skillname_skillweight_dict=skill_name_weight,
@@ -656,7 +706,7 @@ class Database:
             ):
                 return (
                     False,
-                    f"{CandidatesCol.EMAIL} '{email}' is already used by another candidate. Please make sure this is not a duplicate.",
+                    f"A candidate with email '{email}' has already been uploaded to this job. Skipping duplicate.",
                 )
             elif (
                 CandidatesCol.PHONE in error_msg
@@ -664,7 +714,7 @@ class Database:
             ):
                 return (
                     False,
-                    f"{CandidatesCol.PHONE} '{phone}' is already used by another candidate. Please make sure this is not a duplicate.",
+                    f"A candidate with phone '{phone}' has already been uploaded to this job. Skipping duplicate.",
                 )
             else:
                 return False, f"Database Integrity Error: {error_msg}"
