@@ -1,4 +1,4 @@
-##how to setup environment for MacOS:
+## how to setup environment for MacOS:
 
 python3.11 -m venv .venv311
 <br>
@@ -7,7 +7,7 @@ source .venv311/bin/activate
 pip install -r requirements.txt
 
 
-##how to setup environment for Windows:
+## how to setup environment for Windows:
 
 py -3.11 -m venv .venv311
 <br>
