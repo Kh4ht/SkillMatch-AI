@@ -6,6 +6,8 @@ source .venv311/bin/activate
 <br>
 pip install -r requirements.txt
 
+<br>
+<br>
 how to setup environment for Windows:
 
 py -3.11 -m venv .venv311
