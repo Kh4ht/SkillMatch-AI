@@ -633,18 +633,65 @@ def auto_extract_job_requirements(
                 return True
         return False
 
-    base_exp = (
-        30
-        if _is_high(["experience", "years", "exp"])
-        else (20 if _is_low(["experience", "years", "exp"]) else 25)
-    )
-    base_edu = (
-        20
-        if _is_high(["education", "degree", "bachelor", "master", "phd"])
-        else (
-            10 if _is_low(["education", "degree", "bachelor", "master", "phd"]) else 15
+    # ── Detect whether experience / education are mentioned at all ────
+    exp_keywords = [
+        "experience",
+        "years",
+        "year",
+        "exp",
+        "senior",
+        "junior",
+        "mid-level",
+        "entry level",
+        "lead",
+        "principal",
+    ]
+    edu_keywords = [
+        "education",
+        "degree",
+        "bachelor",
+        "master",
+        "phd",
+        "doctorate",
+        "diploma",
+        "university",
+        "college",
+        "msc",
+        "bsc",
+        "mba",
+        "undergraduate",
+        "graduate",
+    ]
+
+    exp_mentioned = any(kw in text_lower for kw in exp_keywords)
+    edu_mentioned = any(kw in text_lower for kw in edu_keywords)
+
+    # ── Weights — always sum to 100% ──────────────────────────────────
+    # If a field is not mentioned at all, its weight is 0 and all goes to skills.
+    if exp_mentioned:
+        base_exp = (
+            30
+            if _is_high(["experience", "years", "exp"])
+            else (20 if _is_low(["experience", "years", "exp"]) else 25)
         )
-    )
+    else:
+        base_exp = 0
+        min_years_exp = 0  # confirm 0 if nothing was found
+
+    if edu_mentioned:
+        base_edu = (
+            20
+            if _is_high(["education", "degree", "bachelor", "master", "phd"])
+            else (
+                10
+                if _is_low(["education", "degree", "bachelor", "master", "phd"])
+                else 15
+            )
+        )
+    else:
+        base_edu = 0
+        min_edu = "none"
+
     skills_total = 100 - base_exp - base_edu
     min_exp_weight = base_exp
     min_edu_weight = base_edu
@@ -827,29 +874,30 @@ def calculate_match_score(
         total_score += sbert_score * W_SBERT
 
     # ── Experience Score ──────────────────────────────────────────────
-    # Non-linear: partial credit for close experience,
-    # small bonus for exceeding the requirement.
-    min_exp = job_requirements.min_years_exp or 0
-    if min_exp <= 0:
-        exp_score = 1.0
-    elif extracted_experience >= min_exp:
-        exp_score = min(1.0, 0.9 + (extracted_experience - min_exp) * 0.02)
-    else:
-        exp_score = extracted_experience / min_exp
-
-    exp_weight_factor = (job_requirements.min_exp_weight or 20) / 100.0
-    total_score += exp_score * W_EXP * (1 + exp_weight_factor)
+    # Skipped entirely if experience was not mentioned in the JD (weight = 0).
+    min_exp_weight_val = job_requirements.min_exp_weight or 0
+    if min_exp_weight_val > 0:
+        min_exp = job_requirements.min_years_exp or 0
+        if min_exp <= 0:
+            exp_score = 1.0
+        elif extracted_experience >= min_exp:
+            exp_score = min(1.0, 0.9 + (extracted_experience - min_exp) * 0.02)
+        else:
+            exp_score = extracted_experience / min_exp
+        exp_weight_factor = min_exp_weight_val / 100.0
+        total_score += exp_score * W_EXP * (1 + exp_weight_factor)
 
     # ── Education Score ───────────────────────────────────────────────
-    # Ordinal comparison: PhD > Master > Bachelor > Diploma
-    candidate_edu = EDUCATION_LEVELS.get(extracted_education.lower().strip(), 0)
-    required_edu = EDUCATION_LEVELS.get(
-        (job_requirements.min_edu or "none").lower().strip(), 0
-    )
-    edu_score = min(1.0, candidate_edu / required_edu) if required_edu > 0 else 1.0
-
-    edu_weight_factor = (job_requirements.min_edu_weight or 10) / 100.0
-    total_score += edu_score * W_EDU * (1 + edu_weight_factor)
+    # Skipped entirely if education was not mentioned in the JD (weight = 0).
+    min_edu_weight_val = job_requirements.min_edu_weight or 0
+    if min_edu_weight_val > 0:
+        candidate_edu = EDUCATION_LEVELS.get(extracted_education.lower().strip(), 0)
+        required_edu = EDUCATION_LEVELS.get(
+            (job_requirements.min_edu or "none").lower().strip(), 0
+        )
+        edu_score = min(1.0, candidate_edu / required_edu) if required_edu > 0 else 1.0
+        edu_weight_factor = min_edu_weight_val / 100.0
+        total_score += edu_score * W_EDU * (1 + edu_weight_factor)
 
     # ── Normalize to 0–100 and clamp ─────────────────────────────────
     final = total_score * 100.0
