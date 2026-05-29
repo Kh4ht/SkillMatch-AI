@@ -6,23 +6,115 @@
 
 {% block style %}
 <style>
-    :root { --bg-image: url("/static/images/image2.jpg"); }
-    .edit-job-button { font-size:20px; color:rgba(255,255,255,.6); background:transparent; padding:1px 10px; transition:all .2s; border:none; border-radius:50px; }
-    .edit-job-button:hover { transform:scale(1.4); color:white; }
+    :root {
+        --bg-image: url("/static/images/image2.jpg");
+    }
 
-    .job-card { background:linear-gradient(135deg,#667eea 0%,#764ba2 100%); border-radius:16px; padding:40px 20px; box-shadow:0 2px 8px rgba(0,0,0,.1); position:relative; color:white; font-size:18px; font-weight:600; text-align:center; cursor:pointer; transition:all .3s; display:flex; align-items:center; justify-content:center; min-height:100px; }
-    .job-card:hover { transform:translateY(-5px); box-shadow:0 10px 20px rgba(0,0,0,.2); }
-    .job-card.active { background:linear-gradient(135deg,#4facfe 0%,#00f2fe 100%); transform:scale(1.02); box-shadow:0 10px 20px rgba(0,0,0,.3); }
+    .edit-job-button {
+        font-size: 20px;
+        color: rgba(255, 255, 255, .6);
+        background: transparent;
+        padding: 1px 10px;
+        transition: all .2s;
+        border: none;
+        border-radius: 50px;
+    }
 
-    .add-job-card { background:linear-gradient(135deg,rgba(0,255,64,.4) 0%,rgba(211,255,207,.3) 100%); border-radius:16px; padding:40px 20px; color:rgba(16,16,16,.6); font-size:18px; font-weight:600; text-align:center; cursor:pointer; transition:all .3s; display:flex; align-items:center; justify-content:center; min-height:100px; }
-    .add-job-card:hover { transform:translateY(-5px); color:rgba(16,16,16,1); }
+    .edit-job-button:hover {
+        transform: scale(1.4);
+        color: white;
+    }
 
-    .added-skill { background:white; color:black; border-radius:9999px; border-color:#006ee4; padding:10px; margin:4px; font-weight:bold; display:inline-block; position:relative; }
-    .added-skill:enabled:hover { background:white; color:rgb(72,0,0); border-color:red; transition:0.3s ease; }
-    .added-skill:hover::after { content:"✕"; position:absolute; left:50%; top:50%; transform:translate(-50%,-50%); color:rgba(255,0,0,.1); font-weight:bold; font-size:40px; }
+    .job-card {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border-radius: 16px;
+        padding: 40px 20px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, .1);
+        position: relative;
+        color: white;
+        font-size: 18px;
+        font-weight: 600;
+        text-align: center;
+        cursor: pointer;
+        transition: all .3s;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 100px;
+    }
 
-    .close { font-size:28px; font-weight:bold; cursor:pointer; color:#aaa; }
-    .close:hover { color:#000; }
+    .job-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 20px rgba(0, 0, 0, .2);
+    }
+
+    .job-card.active {
+        background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+        transform: scale(1.02);
+        box-shadow: 0 10px 20px rgba(0, 0, 0, .3);
+    }
+
+    .add-job-card {
+        background: linear-gradient(135deg, rgba(0, 255, 64, .4) 0%, rgba(211, 255, 207, .3) 100%);
+        border-radius: 16px;
+        padding: 40px 20px;
+        color: rgba(16, 16, 16, .6);
+        font-size: 18px;
+        font-weight: 600;
+        text-align: center;
+        cursor: pointer;
+        transition: all .3s;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 100px;
+    }
+
+    .add-job-card:hover {
+        transform: translateY(-5px);
+        color: rgba(16, 16, 16, 1);
+    }
+
+    .added-skill {
+        background: white;
+        color: black;
+        border-radius: 9999px;
+        border-color: #006ee4;
+        padding: 10px;
+        margin: 4px;
+        font-weight: bold;
+        display: inline-block;
+        position: relative;
+    }
+
+    .added-skill:enabled:hover {
+        background: white;
+        color: rgb(72, 0, 0);
+        border-color: red;
+        transition: 0.3s ease;
+    }
+
+    .added-skill:hover::after {
+        content: "✕";
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        transform: translate(-50%, -50%);
+        color: rgba(255, 0, 0, .1);
+        font-weight: bold;
+        font-size: 40px;
+    }
+
+    .close {
+        font-size: 28px;
+        font-weight: bold;
+        cursor: pointer;
+        color: #aaa;
+    }
+
+    .close:hover {
+        color: #000;
+    }
 </style>
 {% endblock style %}
 
@@ -35,16 +127,11 @@
     </div>
     <div class="grid-container">
         {% for job in current_user.get_jobs() %}
-        <div class="job-card"
-             data-job-id="{{ job.id }}"
-             data-job-title="{{ job.job_title }}"
-             data-min-years-exp="{{ job.min_years_exp }}"
-             data-min-edu="{{ job.min_edu }}"
-             data-min-edu-weight="{{ job.min_edu_weight }}"
-             data-min-exp-weight="{{ job.min_exp_weight }}"
-             data-skills='{{ job.skillname_skillweight_dict | tojson }}'
-             data-candidates='{{ current_user.get_candidates_as_dicts(job.id) | tojson }}'
-             onclick="selectJob(this)">
+        <div class="job-card" data-job-id="{{ job.id }}" data-job-title="{{ job.job_title }}"
+            data-min-years-exp="{{ job.min_years_exp }}" data-min-edu="{{ job.min_edu }}"
+            data-min-edu-weight="{{ job.min_edu_weight }}" data-min-exp-weight="{{ job.min_exp_weight }}"
+            data-skills='{{ job.skillname_skillweight_dict | tojson }}'
+            data-candidates='{{ current_user.get_candidates_as_dicts(job.id) | tojson }}' onclick="selectJob(this)">
             {{ job.job_title }}
             <div class="menu-container" style="position: absolute; top: 9px; right: 5px;">
                 <button class="menu-show-btn edit-job-button">
@@ -53,7 +140,7 @@
                 <div class="menu-content">
                     <a href=""><i class="fa-solid fa-pencil"></i> Edit</a>
                     <form method="POST" action="{{ url_for('parse_resumes.delete_job_submit') }}"
-                          onsubmit="return confirm('Are you sure you want to delete ({{ job.job_title }}) job?\nDeleting this job will also delete its candidates\' data.')">
+                        onsubmit="return confirm('Are you sure you want to delete ({{ job.job_title }}) job?\nDeleting this job will also delete its candidates\' data.')">
                         <input type="hidden" name="job_id" value="{{ job.id }}">
                         <button type="submit">
                             <i class="fa-solid fa-trash" style="color: #dc3545"></i>
@@ -81,15 +168,23 @@
         <div class="table-container">
             <table id="job_details_table" style="width: 50%;">
                 <thead>
-                    <tr><th>Category</th><th>Data</th><th>Weight</th></tr>
+                    <tr>
+                        <th>Category</th>
+                        <th>Data</th>
+                        <th>Weight</th>
+                    </tr>
                 </thead>
                 <tbody>
                     <tr>
                         <th>skills</th>
                         <td colspan="2" rowspan="3" style="text-align: center;">Select a Job To View It's Details</td>
                     </tr>
-                    <tr><th>Experience</th></tr>
-                    <tr><th>Education</th></tr>
+                    <tr>
+                        <th>Experience</th>
+                    </tr>
+                    <tr>
+                        <th>Education</th>
+                    </tr>
                 </tbody>
             </table>
         </div>
@@ -98,12 +193,13 @@
     <!-- Add Candidates -->
     <div class="items-container" style="margin-bottom: 30px;">
         <h3><i class="fa-solid fa-people-group"></i> Candidates Table</h3>
-        <form id="add-candidates-form" method="POST" action="{{ url_for('parse_resumes.add_candidates_submit') }}" enctype="multipart/form-data">
-            <input type="file" id="resumeUpload" name="resumeUpload" style="display: none;" accept=".pdf,.doc,.docx" multiple
-                   onchange="document.getElementById('add-candidates-form').submit();" required>
+        <form id="add-candidates-form" method="POST" action="{{ url_for('parse_resumes.add_candidates_submit') }}"
+            enctype="multipart/form-data">
+            <input type="file" id="resumeUpload" name="resumeUpload" style="display: none;" accept=".pdf,.doc,.docx"
+                multiple onchange="document.getElementById('add-candidates-form').submit();" required>
             <input type="hidden" name="selected_job_id" id="selected_job_id" value="">
             <button style="margin-top: 40px; width: 100%;" class="btn" type="button"
-                    onclick="document.getElementById('resumeUpload').click();">
+                onclick="document.getElementById('resumeUpload').click();">
                 <i class="fa-solid fa-plus"></i> Add Candidates
             </button>
         </form>
@@ -112,12 +208,13 @@
     <!-- Search -->
     <div class="items-container" style="margin-bottom: 30px;">
         <i class="fa-solid fa-magnifying-glass"></i>
-        <input type="search" style="width: 100%;" id="search_txt_input" placeholder="Search Table . . ." oninput="searchTable()" />
+        <input type="search" style="width: 100%;" id="search_txt_input" placeholder="Search Table . . ."
+            oninput="searchTable()" />
     </div>
 
     <!-- Delete -->
     <form id="delete-candidates-form" method="POST" action="{{ url_for('parse_resumes.delete_candidates_submit') }}"
-          onsubmit="document.getElementById('candidate_ids_to_delete').value = getSelectedCandidatesIds(); return confirm('Are you sure you want to delete the selected candidates?')">
+        onsubmit="document.getElementById('candidate_ids_to_delete').value = getSelectedCandidatesIds(); return confirm('Are you sure you want to delete the selected candidates?')">
         <input type="hidden" name="candidate_ids_to_delete" id="candidate_ids_to_delete" value="">
         <button type="submit" id="delete-candidate-submit-button" class="btn btn-red" style="margin-bottom: 30px;">
             <i class="fa-solid fa-trash"></i> Delete
@@ -160,26 +257,25 @@
             </span>
         </div>
         <div style="min-height:14px; margin-bottom: 20px">
-            <p id="add-job-window-warning-msg" style="transform-origin: left center; font-size: 12px; color: red; font-weight: bold;"></p>
+            <p id="add-job-window-warning-msg"
+                style="transform-origin: left center; font-size: 12px; color: red; font-weight: bold;"></p>
         </div>
         <form id="addJobForm" action="{{ url_for('parse_resumes.add_job_submit') }}" method="post">
             <div class="vertical-container" style="margin-bottom: 50px; max-height: 400px">
                 <label>Job Title *</label>
-                <input type="text" name="job_title" id="job_title" placeholder="e.g., Software Engineer" minlength="3" maxlength="100" required>
+                <input type="text" name="job_title" id="job_title" placeholder="e.g., Software Engineer" minlength="3"
+                    maxlength="100" required>
 
                 <label style="margin-top: 30px;">Job Description *</label>
                 <p style="font-size: 12px; color: gray; margin: 4px 0 8px;">
                     Paste the full job description. Skills, experience, and education requirements
                     will be extracted automatically — no manual setup needed.
                 </p>
-                <textarea
-                    name="job_description"
-                    id="job_description"
+                <textarea name="job_description" id="job_description"
                     placeholder="e.g., We are looking for a Senior Python Developer with 5+ years of experience in machine learning and REST APIs. A Bachelor's degree in Computer Science is required..."
                     rows="8"
                     style="width: 100%; resize: vertical; padding: 10px; border-radius: 6px; border: 1px solid #ccc; font-size: 14px;"
-                    required
-                    minlength="30"></textarea>
+                    required minlength="30"></textarea>
 
                 <button class="btn btn-green" type="submit" style="width: 100%; margin-top: 30px;">Add Job</button>
             </div>
