@@ -1,18 +1,19 @@
 """
 SkillMatch-AI — ATS Scoring Engine
 ====================================
-Drop this file into:  app/api/models/ats_scorer.py
+app/api/models/ats_scorer.py
 
-This plugs directly into your existing pipeline.
-It REPLACES only Utils.calculate_match_score().
-Everything else (Extractors, Database, Flask routes) stays untouched.
+Three scoring algorithms:
+  1. TF-IDF cosine similarity  (sublinear TF, length-normalised)
+  2. BM25 Okapi                (probabilistic term ranking)
+  3. Experience + Education    (structured signals)
 
-Algorithms used:
-  1. TF-IDF + Cosine Similarity  — keyword frequency vectors
-  2. BM25 (Okapi)                — probabilistic relevance ranking
-  3. spaCy NER Skill Match       — lemmatization + PhraseMatcher (any domain)
-  4. SBERT + Cosine Similarity   — deep semantic sentence embeddings
-  5. Weighted Ensemble           — combines all signals + your job weights
+Skill matching is intentionally weighted based on JD quality:
+  - Structured JD (has bullet list / requirements section) → skills carry 45%
+  - Vague paragraph JD (no structure) → text similarity carries more, skills carry 20%
+
+This prevents the common case where a vague one-paragraph JD causes everyone
+to score identically on skills (since no one has "engineering team" in their CV).
 """
 
 import math
@@ -25,21 +26,13 @@ if TYPE_CHECKING:
     from .models import Job
 
 
-# ──────────────────────────────────────────────
-# ALGORITHM 4 — SBERT LOADER
-# Loads once when the app starts, reused for every request.
-# Falls back gracefully if sentence-transformers is not installed.
-# ──────────────────────────────────────────────
-
-_sbert_model = None  # cached model — loaded only once
+# ─────────────────────────────────────────────
+# SBERT (optional — graceful fallback if not installed)
+# ─────────────────────────────────────────────
+_sbert_model = None
 
 
 def _get_sbert_model():
-    """
-    Lazy-loads the SBERT model on first use.
-    Uses 'all-MiniLM-L6-v2' — small (80MB), fast, and accurate.
-    Returns None if sentence-transformers is not installed.
-    """
     global _sbert_model
     if _sbert_model is not None:
         return _sbert_model
@@ -47,61 +40,30 @@ def _get_sbert_model():
         from sentence_transformers import SentenceTransformer
 
         _sbert_model = SentenceTransformer("all-MiniLM-L6-v2")
-    except ImportError:
-        warnings.warn(
-            "sentence-transformers not installed. SBERT disabled.\n"
-            "Run: pip install sentence-transformers\n"
-            "The other algorithms will still run normally."
-        )
+    except Exception:
         _sbert_model = None
     return _sbert_model
 
 
-def _sbert_cosine(resume_text: str, job_text: str) -> float:
-    """
-    Encodes resume and job description into 384-dimensional vectors
-    using SBERT (all-MiniLM-L6-v2), then returns cosine similarity.
-
-    Example:
-      resume: "Python developer with ML experience"
-      job:    "Looking for an AI engineer who knows Python"
-      → high similarity because SBERT understands they mean the same thing
-
-    Returns float in [0, 1], or 0.0 if SBERT is unavailable.
-    """
+def _sbert_cosine(r: str, j: str) -> float:
     model = _get_sbert_model()
-    if model is None:
+    if not model:
         return 0.0
-
-    # Truncate to 512 tokens max (SBERT limit) — take first 1000 chars as proxy
-    r = resume_text[:1000]
-    j = job_text[:1000]
-
-    embeddings = model.encode([r, j], convert_to_numpy=True)
-
-    # Manual cosine similarity (avoids needing sklearn)
-    vec_a, vec_b = embeddings[0], embeddings[1]
-    dot = float(vec_a @ vec_b)
-    norm_a = float((vec_a**2).sum() ** 0.5)
-    norm_b = float((vec_b**2).sum() ** 0.5)
-    return dot / (norm_a * norm_b) if norm_a and norm_b else 0.0
+    emb = model.encode([r[:1000], j[:1000]], convert_to_numpy=True)
+    a, b = emb[0], emb[1]
+    dot = float(a @ b)
+    na = float((a**2).sum() ** 0.5)
+    nb = float((b**2).sum() ** 0.5)
+    return dot / (na * nb) if na and nb else 0.0
 
 
-# ──────────────────────────────────────────────
-# ALGORITHM 3 — spaCy NER LOADER
-# Same model already used by extractors.py (en_core_web_sm).
-# Loaded once and reused for every request.
-# ──────────────────────────────────────────────
-
-_nlp = None  # cached spaCy model
+# ─────────────────────────────────────────────
+# spaCy (optional — graceful fallback)
+# ─────────────────────────────────────────────
+_nlp = None
 
 
 def _get_nlp():
-    """
-    Lazy-loads the spaCy model on first use.
-    Reuses 'en_core_web_sm' — already a project dependency (see extractors.py).
-    Returns None if spaCy is not installed or model is missing.
-    """
     global _nlp
     if _nlp is not None:
         return _nlp
@@ -109,23 +71,15 @@ def _get_nlp():
         import spacy
 
         _nlp = spacy.load("en_core_web_sm")
-    except ImportError:
-        warnings.warn(
-            "spaCy not installed. Algorithm 3 will fall back to basic text matching.\n"
-            "Run: pip install spacy && python -m spacy download en_core_web_sm"
-        )
-        _nlp = None
-    except OSError:
-        warnings.warn(
-            "spaCy model 'en_core_web_sm' not found. Algorithm 3 will fall back.\n"
-            "Run: python -m spacy download en_core_web_sm"
-        )
+    except Exception:
         _nlp = None
     return _nlp
 
 
-# Education level map (same as your Utils.EDUCATION_WORDS)
-EDUCATION_LEVELS: dict[str, int] = {
+# ─────────────────────────────────────────────
+# CONSTANTS
+# ─────────────────────────────────────────────
+EDUCATION_LEVELS = {
     "phd": 4,
     "doctorate": 4,
     "master": 3,
@@ -133,7 +87,6 @@ EDUCATION_LEVELS: dict[str, int] = {
     "bachelor": 2,
     "bachelors": 2,
     "highschool": 1,
-    "high school": 1,
     "diploma": 1,
     "none": 0,
 }
@@ -210,244 +163,8 @@ STOPWORDS = {
     "each",
 }
 
-
-# ──────────────────────────────────────────────
-# TEXT HELPERS
-# ──────────────────────────────────────────────
-
-
-def _tokenize(text: str) -> list[str]:
-    text = text.lower()
-    text = re.sub(r"[^a-z0-9\s]", " ", text)
-    return [t for t in text.split() if len(t) > 1 and t not in STOPWORDS]
-
-
-# ──────────────────────────────────────────────
-# ALGORITHM 1 — TF-IDF COSINE SIMILARITY
-# ──────────────────────────────────────────────
-
-
-def _tfidf_cosine(resume_text: str, job_text: str) -> float:
-    """
-    Builds TF-IDF vectors for resume and job description,
-    then returns their cosine similarity in [0, 1].
-    """
-    corpus = [resume_text, job_text]
-    tokenized = [_tokenize(d) for d in corpus]
-    vocab = set(t for doc in tokenized for t in doc)
-    N = len(corpus)
-
-    def vec(tokens: list[str]) -> dict[str, float]:
-        tf = Counter(tokens)
-        total = len(tokens) or 1
-        v = {}
-        for term in vocab:
-            tf_val = tf.get(term, 0) / total
-            df = sum(1 for doc in tokenized if term in doc)
-            idf = math.log((N + 1) / (df + 1)) + 1
-            v[term] = tf_val * idf
-        return v
-
-    v1 = vec(tokenized[0])
-    v2 = vec(tokenized[1])
-
-    dot = sum(v1.get(k, 0) * v2.get(k, 0) for k in vocab)
-    n1 = math.sqrt(sum(x**2 for x in v1.values()))
-    n2 = math.sqrt(sum(x**2 for x in v2.values()))
-    return dot / (n1 * n2) if n1 and n2 else 0.0
-
-
-# ──────────────────────────────────────────────
-# ALGORITHM 2 — BM25 (Okapi)
-# ──────────────────────────────────────────────
-
-
-def _bm25(query_text: str, doc_text: str, k1: float = 1.5, b: float = 0.75) -> float:
-    """
-    Scores doc_text against query_text using Okapi BM25.
-    Uses a 2-document corpus (query as one doc, resume as the other).
-    Returns a normalized score in [0, 1].
-    """
-    corpus = [query_text, doc_text]
-    tokenized_corpus = [_tokenize(d) for d in corpus]
-    q_tokens = _tokenize(query_text)
-    d_tokens = _tokenize(doc_text)
-
-    avg_dl = sum(len(d) for d in tokenized_corpus) / len(tokenized_corpus)
-    d_len = len(d_tokens)
-    N = len(tokenized_corpus)
-    d_tf = Counter(d_tokens)
-
-    score = 0.0
-    for term in q_tokens:
-        df = sum(1 for d in tokenized_corpus if term in d)
-        idf = math.log((N - df + 0.5) / (df + 0.5) + 1)
-        tf = d_tf.get(term, 0)
-        numerator = tf * (k1 + 1)
-        denominator = tf + k1 * (1 - b + b * d_len / avg_dl)
-        score += idf * (numerator / denominator)
-
-    max_possible = len(q_tokens) * math.log(N + 1)
-    return min(score / max_possible, 1.0) if max_possible > 0 else 0.0
-
-
-# ──────────────────────────────────────────────
-# ALGORITHM 3 — spaCy NER SKILL MATCH
-#
-# HOW IT WORKS (replaces the old hardcoded SKILL_SYNONYMS graph):
-#
-# Step 1 — PhraseMatcher on LEMMA attribute
-#   spaCy reduces every word to its base form (lemma) before matching.
-#   This means:
-#     "surgeries"  → lemma "surgery"   ✓ matches job skill "surgery"
-#     "managing"   → lemma "manage"    ✓ matches job skill "management"
-#     "algorithms" → lemma "algorithm" ✓ matches job skill "algorithm"
-#   This works for ANY domain — medicine, law, finance, tech — with no
-#   hardcoded lists because lemmatization is language-level, not domain-level.
-#
-# Step 2 — Token Overlap fallback (partial credit)
-#   For multi-word skills that PhraseMatcher didn't catch exactly, we check
-#   what fraction of the skill's lemma tokens appear anywhere in the resume.
-#   Threshold: 60% overlap → counted as a match.
-#   Example:
-#     job skill:  "cardiothoracic surgery"  (2 tokens)
-#     resume has: "surgery"                 (1/2 = 50% → miss)
-#     resume has: "cardiothoracic surgery"  (2/2 = 100% → hit)
-#     resume has: "cardiothoracic"          (1/2 = 50% → miss)
-#
-# Step 3 — Basic substring fallback (if spaCy is unavailable)
-#   Falls back to simple lowercase substring matching, same behavior as
-#   the old algorithm but without synonyms.
-#
-# DOMAIN EXAMPLES:
-#   Tech resume:     "Python, PyTorch, Docker"    → works exactly as before
-#   Medical resume:  "cardiology, CABG, ICU care" → now correctly matched
-#   Legal resume:    "contract drafting, litigation, arbitration" → works
-#   Finance resume:  "portfolio management, derivatives, hedging" → works
-# ──────────────────────────────────────────────
-
-
-def _semantic_skill_score(
-    resume_text: str,
-    job_skill_dict: dict[str, int],
-) -> tuple[float, list[str], list[str]]:
-    """
-    For each required skill in the job, checks if it (or its lemmatized form)
-    appears in the resume using spaCy's PhraseMatcher.
-
-    No hardcoded synonym lists — works for any domain out of the box.
-
-    Returns:
-      - raw_score in [0, 1]
-      - matched skill names
-      - missing skill names
-    """
-    if not job_skill_dict:
-        return 1.0, [], []
-
-    nlp = _get_nlp()
-
-    # ── spaCy unavailable: plain substring fallback ───────────────────
-    if nlp is None:
-        text_lower = resume_text.lower()
-        matched = [s for s in job_skill_dict if s.lower() in text_lower]
-        missing = [s for s in job_skill_dict if s not in matched]
-        score = len(matched) / len(job_skill_dict)
-        return score, matched, missing
-
-    # ── Step 1: PhraseMatcher on LEMMA ───────────────────────────────
-    # Build one matcher with all job skills as patterns.
-    # LEMMA attribute means "surgery" pattern matches "surgeries" in text.
-    from spacy.matcher import PhraseMatcher
-
-    matcher = PhraseMatcher(nlp.vocab, attr="LEMMA")
-    skill_docs: dict[str, object] = {}
-
-    for skill in job_skill_dict:
-        # Cap skill text length to avoid edge cases
-        skill_doc = nlp(skill.lower()[:200])
-        skill_docs[skill] = skill_doc
-        matcher.add(skill, [skill_doc])
-
-    # Process the resume (cap at 50k chars to avoid OOM on huge docs)
-    resume_doc = nlp(resume_text.lower()[:50_000])
-
-    # Collect every skill that was matched
-    matched_ids = {
-        nlp.vocab.strings[match_id] for match_id, _start, _end in matcher(resume_doc)
-    }
-
-    matched: list[str] = []
-    unmatched: list[str] = []
-
-    for skill in job_skill_dict:
-        if skill in matched_ids:
-            matched.append(skill)
-        else:
-            unmatched.append(skill)
-
-    # ── Step 2: Token Overlap fallback for unmatched skills ───────────
-    # Catches partial matches like "cardiac surgery" vs "cardiothoracic surgery".
-    # Uses the full set of lemmatized, non-stop resume tokens for fast lookup.
-    resume_lemma_set = {
-        token.lemma_
-        for token in resume_doc
-        if not token.is_punct and not token.is_space and not token.is_stop
-    }
-
-    still_missing: list[str] = []
-    for skill in unmatched:
-        skill_doc = skill_docs[skill]
-        skill_lemmas = {
-            token.lemma_
-            for token in skill_doc  # type: ignore
-            if not token.is_punct and not token.is_space
-        }
-        if not skill_lemmas:
-            still_missing.append(skill)
-            continue
-
-        overlap_ratio = len(skill_lemmas & resume_lemma_set) / len(skill_lemmas)
-
-        # 60% of the skill's tokens appear in the resume → count as match
-        if overlap_ratio >= 0.6:
-            matched.append(skill)
-        else:
-            still_missing.append(skill)
-
-    score = len(matched) / len(job_skill_dict)
-    return score, matched, still_missing
-
-
-# ──────────────────────────────────────────────
-# AUTO-EXTRACTION ENGINE
-# Reads a plain job description and returns everything
-# calculate_match_score() needs — no user input required.
-#
-# HOW EACH FIELD IS DERIVED:
-#
-#  skills          — spaCy noun chunks filtered to genuine skill phrases only.
-#                    Phrases containing digits, experience words, or education
-#                    words are explicitly excluded so "5+ years", "a bachelor
-#                    degree", and "an experience" never appear as skills.
-#
-#  min_years_exp   — Regex over patterns like "5+ years", "minimum 3 years",
-#                    "at least 2 years of experience". Seniority-title fallback
-#                    (senior → 5, junior → 1). Returns 0 if not found.
-#
-#  min_edu         — Scans for PhD/Master/Bachelor/diploma keywords.
-#                    Returns "none" if education is not mentioned.
-#
-#  weights         — Fixed logical split that always sums to 100%:
-#                      Skills:     60%  (split equally across extracted skills)
-#                      Experience: 25%
-#                      Education:  15%
-#                    Urgency language ("required" / "preferred") shifts
-#                    exp/edu weights ±5 points while keeping the total at 100%.
-# ──────────────────────────────────────────────
-
-# Words that disqualify a noun chunk from being treated as a skill.
-_EXP_WORDS = {
+# Words that make a noun phrase NOT a skill
+NOT_SKILL = {
     "year",
     "years",
     "experience",
@@ -455,12 +172,7 @@ _EXP_WORDS = {
     "month",
     "months",
     "minimum",
-    "least",
-    "require",
-    "required",
     "background",
-}
-_EDU_WORDS = {
     "degree",
     "bachelor",
     "master",
@@ -476,8 +188,6 @@ _EDU_WORDS = {
     "msc",
     "bsc",
     "mba",
-}
-_GENERIC_WORDS = {
     "ability",
     "skill",
     "skills",
@@ -503,266 +213,584 @@ _GENERIC_WORDS = {
     "location",
     "responsibilities",
     "requirement",
+    "requirements",
+    "qualifications",
+    "preferred",
+    "required",
+    "plus",
+    "bonus",
+    "advantage",
+    "developer",
+    "engineer",
+    "manager",
+    "designer",
+    "analyst",
+    "architect",
+    "consultant",
+    "specialist",
+    "coordinator",
+    "director",
+    "intern",
+    "lead",
+    "head",
+    "officer",
+    "associate",
+    "assistant",
+    "senior",
+    "junior",
+    "mid",
+    "entry",
+    "solution",
+    "solutions",
+    "service",
+    "services",
+    "system",
+    "systems",
+    "platform",
+    "product",
+    "products",
+    "technology",
+    "technologies",
+    "stack",
+    "framework",
+    "client",
+    "clients",
+    "project",
+    "projects",
+    "business",
+    "member",
+    "members",
+    "build",
+    "maintain",
+    "collaborate",
+    "deliver",
+    "join",
+    "looking",
+    "work",
+    "ensure",
+    "support",
+    "help",
+    "use",
+    "using",
+    "make",
+    "create",
+    "write",
+    "develop",
+    "manage",
 }
-_DISQUALIFY = _EXP_WORDS | _EDU_WORDS | _GENERIC_WORDS
+
 _HAS_DIGIT = re.compile(r"\d")
+_BULLET_RE = re.compile(
+    r"^\s*(?:[•\-\u2013\u2014*\u25aa\u25ba\u2713\u2714\u25cb\u25cf\u25e6]"
+    r"|\d+[.)]\s*|[a-z][.)]\s*)\s*",
+    re.MULTILINE,
+)
+_SECTION_RE = re.compile(
+    r"(?:^|\n)\s*(?:required|requirements?|qualifications?|skills?\s*(?:required|needed)?"
+    r"|what you(?:\'ll)? need|must[- ]have|technical skills?|key skills?"
+    r"|core skills?|minimum qualifications?)\s*:?\s*(?:\n|$)",
+    re.IGNORECASE,
+)
+_BOILERPLATE = re.compile(
+    r"^(?:knowledge\s+of|familiarity\s+with|experience\s+(?:with|in|using)|"
+    r"expertise\s+in|proficiency\s+in|understanding\s+of|ability\s+to|"
+    r"working\s+knowledge\s+of|solid\s+understanding\s+of|"
+    r"good\s+knowledge\s+of|hands[- ]on\s+experience\s+(?:with|in))\s+",
+    re.IGNORECASE,
+)
+_NOISE = {
+    "similar languages",
+    "similar tools",
+    "equivalent",
+    "or equivalent",
+    "related field",
+    "bonus",
+    "advantage",
+    "preferred",
+    "nice to have",
+}
+# Known tech keywords to pull directly from a paragraph-style JD
+_TECH_KEYWORDS = [
+    "python",
+    "java",
+    "javascript",
+    "typescript",
+    "nodejs",
+    "ruby",
+    "php",
+    "golang",
+    "rust",
+    "scala",
+    "kotlin",
+    "swift",
+    "c++",
+    "cpp",
+    "c#",
+    "flask",
+    "django",
+    "fastapi",
+    "spring",
+    "express",
+    "rails",
+    "laravel",
+    "react",
+    "vue",
+    "angular",
+    "html",
+    "css",
+    "sass",
+    "sql",
+    "mysql",
+    "postgresql",
+    "sqlite",
+    "mongodb",
+    "redis",
+    "elasticsearch",
+    "rest api",
+    "restful",
+    "graphql",
+    "grpc",
+    "docker",
+    "kubernetes",
+    "aws",
+    "azure",
+    "gcp",
+    "linux",
+    "bash",
+    "git",
+    "machine learning",
+    "deep learning",
+    "tensorflow",
+    "pytorch",
+    "pandas",
+    "numpy",
+    "scikit-learn",
+    "web api",
+    "web apis",
+    "microservices",
+    "api",
+    "apis",
+    "ci/cd",
+    "devops",
+    "agile",
+    "scrum",
+]
 
 
-def _strip_article(phrase: str) -> str:
-    """Remove leading articles that spaCy attaches to noun chunks."""
-    for art in ("a ", "an ", "the "):
-        if phrase.startswith(art):
-            return phrase[len(art) :]
-    return phrase
+# ─────────────────────────────────────────────
+# TEXT HELPERS
+# ─────────────────────────────────────────────
+def _tokenize(text: str) -> list[str]:
+    text = text.lower()
+    text = re.sub(r"[^a-z0-9\s]", " ", text)
+    return [t for t in text.split() if len(t) > 1 and t not in STOPWORDS]
 
 
-def _is_valid_skill_phrase(phrase: str) -> bool:
-    """
-    Returns True only if the phrase looks like a genuine skill/technology.
-    Articles must be stripped BEFORE calling this function.
-    """
+def _stem(w: str) -> str:
+    w = w.lower().rstrip("s")
+    if w.endswith("ie"):
+        w = w[:-2] + "y"
+    return w
+
+
+def _is_valid_skill(phrase: str) -> bool:
     if _HAS_DIGIT.search(phrase):
         return False
-    tokens = phrase.lower().split()
-    if not tokens or len(phrase) <= 1:
+    words = phrase.lower().split()
+    if not words or len(words) > 4:
         return False
-    meaningful = [t for t in tokens if len(t) > 2]
-    if meaningful and all(t in _DISQUALIFY for t in meaningful):
+    meaningful = [w for w in words if len(w) > 2]
+    if meaningful and all(w in NOT_SKILL for w in meaningful):
         return False
     return True
 
 
+def _strip_article(s: str) -> str:
+    for art in ("a ", "an ", "the "):
+        if s.startswith(art):
+            return s[len(art) :]
+    return s
+
+
+# ─────────────────────────────────────────────
+# ALGORITHM 1 — TF-IDF (sublinear, length-normalised)
+# ─────────────────────────────────────────────
+def _tfidf_cosine(resume_text: str, job_text: str) -> float:
+    corpus = [resume_text, job_text]
+    tokenized = [_tokenize(d) for d in corpus]
+    vocab = set(t for d in tokenized for t in d)
+    N = 2
+
+    def vec(tokens):
+        tf = Counter(tokens)
+        v = {}
+        for t in vocab:
+            c = tf.get(t, 0)
+            tf_val = (1 + math.log(c)) if c > 0 else 0.0
+            df = sum(1 for d in tokenized if t in d)
+            idf = math.log((N + 1) / (df + 1)) + 1
+            v[t] = tf_val * idf
+        return v
+
+    v1, v2 = vec(tokenized[0]), vec(tokenized[1])
+    dot = sum(v1.get(k, 0) * v2.get(k, 0) for k in vocab)
+    n1 = math.sqrt(sum(x**2 for x in v1.values()))
+    n2 = math.sqrt(sum(x**2 for x in v2.values()))
+    return dot / (n1 * n2) if n1 and n2 else 0.0
+
+
+# ─────────────────────────────────────────────
+# ALGORITHM 2 — BM25 (Okapi)
+# ─────────────────────────────────────────────
+def _bm25(query: str, doc: str, k1: float = 1.5, b: float = 0.75) -> float:
+    corpus = [query, doc]
+    tc = [_tokenize(x) for x in corpus]
+    qt = _tokenize(query)
+    dt = _tokenize(doc)
+    adl = sum(len(d) for d in tc) / len(tc)
+    dtf = Counter(dt)
+    score = 0.0
+    for t in qt:
+        df = sum(1 for d in tc if t in d)
+        idf = math.log((2 - df + 0.5) / (df + 0.5) + 1)
+        tf = dtf.get(t, 0)
+        score += idf * ((tf * (k1 + 1)) / (tf + k1 * (1 - b + b * len(dt) / adl)))
+    mp = len(qt) * math.log(3)
+    return min(score / mp, 1.0) if mp > 0 else 0.0
+
+
+# ─────────────────────────────────────────────
+# ALGORITHM 3 — SKILL MATCH (stem + substring)
+# ─────────────────────────────────────────────
+def _semantic_skill_score(
+    resume_text: str,
+    job_skill_dict: dict,
+) -> tuple[float, list[str], list[str]]:
+    if not job_skill_dict:
+        return 1.0, [], []
+
+    nlp = _get_nlp()
+
+    if nlp:
+        from spacy.matcher import PhraseMatcher
+
+        matcher = PhraseMatcher(nlp.vocab, attr="LEMMA")
+        skill_docs = {}
+        for skill in job_skill_dict:
+            sdoc = nlp(skill.lower()[:200])
+            skill_docs[skill] = sdoc
+            matcher.add(skill, [sdoc])
+
+        resume_doc = nlp(resume_text.lower()[:50_000])
+        matched_ids = {nlp.vocab.strings[mid] for mid, _, __ in matcher(resume_doc)}
+        matched, unmatched = [], []
+        for skill in job_skill_dict:
+            (matched if skill in matched_ids else unmatched).append(skill)
+
+        resume_lemmas = {
+            t.lemma_
+            for t in resume_doc
+            if not t.is_punct and not t.is_space and not t.is_stop
+        }
+        missing = []
+        for skill in unmatched:
+            sl = {
+                t.lemma_ for t in skill_docs[skill] if not t.is_punct and not t.is_space
+            }
+            if sl and len(sl & resume_lemmas) / len(sl) >= 0.6:
+                matched.append(skill)
+            else:
+                missing.append(skill)
+
+        return len(matched) / len(job_skill_dict), matched, missing
+
+    # Stem-based fallback
+    text_lower = resume_text.lower()
+    resume_stems = {_stem(t) for t in _tokenize(resume_text)}
+    matched, missing = [], []
+    for skill in job_skill_dict:
+        if skill.lower() in text_lower:
+            matched.append(skill)
+            continue
+        skill_stems = {_stem(t) for t in _tokenize(skill)}
+        if skill_stems and len(skill_stems & resume_stems) / len(skill_stems) >= 0.6:
+            matched.append(skill)
+        else:
+            missing.append(skill)
+
+    return len(matched) / len(job_skill_dict), matched, missing
+
+
+# ─────────────────────────────────────────────
+# JD QUALITY DETECTION
+#
+# A "structured" JD has explicit bullet points or a requirements section.
+# A "vague" JD is a plain paragraph.
+#
+# This matters because:
+#   - Structured JD → skill matching is reliable and should dominate
+#   - Vague JD      → skill matching is unreliable (everyone matches the same
+#                     generic terms), so text similarity + experience should dominate
+# ─────────────────────────────────────────────
+def _jd_is_structured(jd_text: str) -> bool:
+    has_section = bool(_SECTION_RE.search(jd_text))
+    has_bullets = bool(_BULLET_RE.search(jd_text))
+    has_list = jd_text.count(",") >= 3 and any(
+        len(part.split()) <= 4 for part in jd_text.split(",")
+    )
+    return has_section or has_bullets or has_list
+
+
+# ─────────────────────────────────────────────
+# JD SKILL EXTRACTION
+# ─────────────────────────────────────────────
 def auto_extract_job_requirements(
     job_description: str,
     job_title: str = "",
 ) -> dict:
     """
-    Reads a plain-text job description and returns a dict with all
-    fields needed to score candidates — no user input required.
+    Extracts skills, experience, education, and weights from a JD.
+    Handles both structured (bullet-point) and unstructured (paragraph) JDs.
     """
-    text = (job_title + " " + job_description).strip()
+    text = (job_title + "\n" + job_description).strip()
     text_lower = text.lower()
 
-    # ── Extract min_years_exp ─────────────────────────────────────────
+    # ── Experience ────────────────────────────────────────────────────
     exp_patterns = [
         r"(\d+)\s*\+?\s*years?\s+of\s+experience",
         r"(\d+)\s*\+?\s*years?\s+experience",
-        r"minimum\s+of\s+(\d+)\s+years?",
-        r"minimum\s+(\d+)\s+years?",
+        r"minimum\s+(?:of\s+)?(\d+)\s+years?",
         r"at\s+least\s+(\d+)\s+years?",
-        r"experience\s*[:\-]\s*(\d+)\s*\+?\s*years?",
-        r"(\d+)\s*\+?\s*years?\s+(?:of\s+)?(?:relevant\s+)?exp",
-        r"(\d+)\s*[-\u2013]\s*\d+\s*years?",
         r"(\d+)\s*\+\s*years?",
+        r"(\d+)\s*[-\u2013]\s*\d+\s*years?",
     ]
-    seniority_map = {
+    seniority = {
         "principal": 7,
         "staff": 6,
         "senior": 5,
         "lead": 5,
         "mid-level": 3,
-        "mid level": 3,
         "intermediate": 3,
         "junior": 1,
         "entry level": 0,
         "entry-level": 0,
         "graduate": 0,
     }
-
     min_years_exp = 0
-    for pattern in exp_patterns:
-        m = re.search(pattern, text_lower)
+    for pat in exp_patterns:
+        m = re.search(pat, text_lower)
         if m:
             try:
                 min_years_exp = int(m.group(1))
                 break
-            except (ValueError, IndexError):
-                continue
-
-    if min_years_exp == 0:
-        for keyword, years in seniority_map.items():
-            if keyword in text_lower:
-                min_years_exp = years
+            except:
+                pass
+    if not min_years_exp:
+        for kw, yrs in seniority.items():
+            if kw in text_lower:
+                min_years_exp = yrs
                 break
 
-    # ── Extract min_edu ───────────────────────────────────────────────
-    edu_priority = [
+    # ── Education ─────────────────────────────────────────────────────
+    edu_map = [
         ("phd", 4),
         ("doctorate", 4),
-        ("ph.d", 4),
         ("master", 3),
         ("msc", 3),
-        ("m.sc", 3),
         ("mba", 3),
         ("bachelor", 2),
         ("bsc", 2),
-        ("b.sc", 2),
         ("undergraduate", 2),
         ("degree", 2),
         ("diploma", 1),
         ("high school", 1),
-        ("highschool", 1),
     ]
-    min_edu = "none"
-    best_edu_level = 0
-    for keyword, level in edu_priority:
-        if keyword in text_lower and level > best_edu_level:
-            if keyword in ("msc", "m.sc", "mba"):
-                min_edu = "master"
-            elif keyword in ("bsc", "b.sc", "undergraduate", "degree"):
-                min_edu = "bachelor"
-            elif keyword in ("ph.d", "doctorate"):
-                min_edu = "phd"
-            else:
-                min_edu = keyword
-            best_edu_level = level
+    min_edu, best = "none", 0
+    for kw, lvl in edu_map:
+        if kw in text_lower and lvl > best:
+            min_edu = {
+                "msc": "master",
+                "mba": "master",
+                "bsc": "bachelor",
+                "undergraduate": "bachelor",
+            }.get(kw, kw)
+            best = lvl
 
-    # ── Urgency detection ─────────────────────────────────────────────
-    high_urgency = ["required", "must have", "essential", "mandatory"]
-    low_urgency = ["preferred", "nice to have", "bonus", "desirable"]
+    # ── Urgency weights ───────────────────────────────────────────────
+    HIGH = ["required", "must have", "essential", "mandatory"]
+    LOW = ["preferred", "nice to have", "bonus", "desirable"]
 
-    def _is_high(kws):
-        for s in re.split(r"[.;\n]", text_lower):
-            if any(k in s for k in kws) and any(u in s for u in high_urgency):
-                return True
-        return False
+    def urgency(kws):
+        for sent in re.split(r"[.;\n]", text_lower):
+            if any(k in sent for k in kws):
+                if any(u in sent for u in HIGH):
+                    return "high"
+                if any(u in sent for u in LOW):
+                    return "low"
+        return "normal"
 
-    def _is_low(kws):
-        for s in re.split(r"[.;\n]", text_lower):
-            if any(k in s for k in kws) and any(u in s for u in low_urgency):
-                return True
-        return False
+    exp_mentioned = any(
+        k in text_lower
+        for k in [
+            "experience",
+            "years",
+            "year",
+            "exp",
+            "senior",
+            "junior",
+            "mid-level",
+            "lead",
+        ]
+    )
+    edu_mentioned = any(
+        k in text_lower
+        for k in [
+            "education",
+            "degree",
+            "bachelor",
+            "master",
+            "phd",
+            "diploma",
+            "university",
+        ]
+    )
 
-    # ── Detect whether experience / education are mentioned at all ────
-    exp_keywords = [
-        "experience",
-        "years",
-        "year",
-        "exp",
-        "senior",
-        "junior",
-        "mid-level",
-        "entry level",
-        "lead",
-        "principal",
-    ]
-    edu_keywords = [
-        "education",
-        "degree",
-        "bachelor",
-        "master",
-        "phd",
-        "doctorate",
-        "diploma",
-        "university",
-        "college",
-        "msc",
-        "bsc",
-        "mba",
-        "undergraduate",
-        "graduate",
-    ]
-
-    exp_mentioned = any(kw in text_lower for kw in exp_keywords)
-    edu_mentioned = any(kw in text_lower for kw in edu_keywords)
-
-    # ── Weights — always sum to 100% ──────────────────────────────────
-    # If a field is not mentioned at all, its weight is 0 and all goes to skills.
-    if exp_mentioned:
-        base_exp = (
-            30
-            if _is_high(["experience", "years", "exp"])
-            else (20 if _is_low(["experience", "years", "exp"]) else 25)
-        )
-    else:
+    if not exp_mentioned and min_years_exp == 0:
         base_exp = 0
-        min_years_exp = 0  # confirm 0 if nothing was found
-
-    if edu_mentioned:
-        base_edu = (
-            20
-            if _is_high(["education", "degree", "bachelor", "master", "phd"])
-            else (
-                10
-                if _is_low(["education", "degree", "bachelor", "master", "phd"])
-                else 15
-            )
-        )
     else:
+        exp_u = urgency(["experience", "years", "exp"])
+        base_exp = 30 if exp_u == "high" else (20 if exp_u == "low" else 25)
+
+    if not edu_mentioned:
         base_edu = 0
         min_edu = "none"
-
-    skills_total = 100 - base_exp - base_edu
-    min_exp_weight = base_exp
-    min_edu_weight = base_edu
-
-    # ── Extract skills ────────────────────────────────────────────────
-    nlp = _get_nlp()
-    skill_names: list[str] = []
-
-    if nlp:
-        doc = nlp(text[:50_000])
-        candidates: set[str] = set()
-
-        for chunk in doc.noun_chunks:
-            # Strip determiner first — spaCy attaches "a/an/the" to chunks
-            phrase = _strip_article(chunk.text.strip().lower())
-            content_tokens = [
-                t
-                for t in chunk
-                if not t.is_stop
-                and not t.is_punct
-                and t.text.lower() not in ("a", "an", "the")
-            ]
-            if (
-                1 <= len(phrase.split()) <= 4
-                and content_tokens
-                and _is_valid_skill_phrase(phrase)
-            ):
-                candidates.add(phrase)
-
-        for ent in doc.ents:
-            if ent.label_ in ("ORG", "PRODUCT", "WORK_OF_ART", "LAW"):
-                phrase = _strip_article(ent.text.strip().lower())
-                if 1 <= len(phrase.split()) <= 4 and _is_valid_skill_phrase(phrase):
-                    candidates.add(phrase)
-
-        skill_names = sorted(candidates, key=lambda x: (-len(x.split()), x))[:30]
-
     else:
-        # Fallback: token frequency approach — works on plain lowercase JDs
-        tokens = re.findall(r"\b[a-zA-Z][a-zA-Z0-9+#.\-]{1,25}\b", text)
-        seen: dict[str, int] = {}
-        for t in tokens:
-            tl = t.lower()
-            if (
-                tl not in STOPWORDS
-                and tl not in _DISQUALIFY
-                and not _HAS_DIGIT.search(tl)
-                and len(tl) > 2
-            ):
-                seen[tl] = seen.get(tl, 0) + 1
-        capitalised = {t.lower() for t in tokens if t[0].isupper() and len(t) > 2}
-        skill_names = [
-            w
-            for w, count in sorted(seen.items(), key=lambda x: -x[1])
-            if count > 1 or w in capitalised
-        ][:30]
+        edu_u = urgency(["education", "degree", "bachelor", "master", "phd"])
+        base_edu = 20 if edu_u == "high" else (10 if edu_u == "low" else 15)
 
-    # ── Assign skill weights ──────────────────────────────────────────
-    num_skills = len(skill_names) or 1
-    per_skill_weight = max(1, skills_total // num_skills)
-    skill_name_weight = {name: per_skill_weight for name in skill_names}
+    skills_pct = 100 - base_exp - base_edu
+
+    # ── Skill extraction ──────────────────────────────────────────────
+    structured = _jd_is_structured(job_description)
+
+    if structured:
+        skill_names = _extract_structured_skills(job_description)
+    else:
+        skill_names = _extract_paragraph_skills(text)
+
+    # Deduplicate: remove shorter phrases that are substrings of longer ones
+    # e.g. 'api' and 'apis' and 'web api' → keep 'web api' only
+    skill_names = _deduplicate_skills(skill_names)[:20]
+
+    n = len(skill_names) or 1
+    per_skill = skills_pct // n
+    remainder = skills_pct - per_skill * n
+    skill_dict = {
+        s: per_skill + (remainder if i == 0 else 0) for i, s in enumerate(skill_names)
+    }
 
     return {
-        "skills": skill_name_weight,
+        "skills": skill_dict,
         "min_edu": min_edu,
         "min_years_exp": min_years_exp,
-        "min_edu_weight": min_edu_weight,
-        "min_exp_weight": min_exp_weight,
+        "min_edu_weight": base_edu,
+        "min_exp_weight": base_exp,
+        "jd_structured": structured,
     }
 
 
+def _extract_structured_skills(jd_text: str) -> list[str]:
+    """Extract skills from a structured JD (has Requirements: section or bullets)."""
+    sections = []
+    matches = list(_SECTION_RE.finditer(jd_text))
+    for i, m in enumerate(matches):
+        start = m.end()
+        end = matches[i + 1].start() if i + 1 < len(matches) else start + 800
+        sections.append(jd_text[start:end])
+    section_text = "\n".join(sections) if sections else jd_text
+
+    items = []
+    for line in section_text.splitlines():
+        clean = _BULLET_RE.sub("", line).strip()
+        if not clean or len(clean) < 2:
+            continue
+        parts = re.split(r"[,;]", clean) if ("," in clean or ";" in clean) else [clean]
+        for part in parts:
+            part = _BOILERPLATE.sub("", part.strip()).strip()
+            if not part:
+                continue
+            for atom in re.split(r"\s*/\s*|\s+or\s+|\s*&\s*", part):
+                atom = atom.strip()
+                if atom:
+                    items.append(atom)
+
+    skill_names = []
+    seen = set()
+    for item in items:
+        clean = re.sub(r"\s+", " ", item.lower())
+        clean = re.sub(r"[^a-z0-9\s#+.\-]", "", clean).strip()
+        if not clean or clean in seen or clean in _NOISE:
+            continue
+        clean = _strip_article(clean)
+        if " and " in clean and len(clean.split()) > 3:
+            parts2 = [p.strip() for p in clean.split(" and ")]
+            if all(len(p.split()) <= 3 for p in parts2):
+                for p in parts2:
+                    if p and p not in seen and _is_valid_skill(p):
+                        seen.add(p)
+                        skill_names.append(p)
+                continue
+        if _is_valid_skill(clean) and clean not in seen:
+            seen.add(clean)
+            skill_names.append(clean)
+
+    return skill_names
+
+
+def _extract_paragraph_skills(text: str) -> list[str]:
+    """
+    Extract skills from a vague paragraph JD.
+    Strategy: scan for known tech keywords explicitly.
+    This is safer than trying to parse free-form sentences.
+    """
+    text_lower = text.lower()
+    found = []
+    seen_stems = set()
+
+    for kw in sorted(_TECH_KEYWORDS, key=lambda x: -len(x)):
+        if kw in text_lower:
+            # Check it's not already covered by a longer keyword already added
+            kw_stems = frozenset(_stem(t) for t in _tokenize(kw))
+            if not kw_stems.issubset(seen_stems):
+                found.append(kw)
+                seen_stems.update(kw_stems)
+
+    return found
+
+
+def _deduplicate_skills(skills: list[str]) -> list[str]:
+    """
+    Remove redundant entries.
+    'api' is redundant if 'web api' or 'rest api' is present.
+    'apis' is a duplicate of 'api'.
+    Shorter phrase removed if all its stems appear in a longer phrase's stems.
+    """
+    skills = list(dict.fromkeys(skills))  # preserve order, remove exact dupes
+    stemmed = [frozenset(_stem(t) for t in _tokenize(s)) for s in skills]
+    keep = []
+    for i, (s, ss) in enumerate(zip(skills, stemmed)):
+        # Remove if this skill's stems are a subset of any other skill's stems
+        dominated = any(
+            ss < stemmed[j] for j in range(len(skills)) if j != i  # strict subset
+        )
+        if not dominated:
+            keep.append(s)
+    return keep
+
+
+# ─────────────────────────────────────────────
+# MAIN SCORER
+# ─────────────────────────────────────────────
 def calculate_match_score(
     extracted_skills: list[str],
     extracted_education: str,
@@ -772,150 +800,122 @@ def calculate_match_score(
     job_description_text: str = "",
 ) -> float:
     """
-    Advanced ATS scoring engine — weighted ensemble of:
-      1. TF-IDF cosine similarity   (text-level keyword alignment)
-      2. BM25 relevance score       (probabilistic term ranking)
-      3. spaCy NER skill match      (lemma-based, domain-agnostic)
-      4. SBERT + cosine similarity  (deep semantic sentence embeddings)
-      5. Experience score           (non-linear ratio)
-      6. Education score            (ordinal level comparison)
-
-    AUTO MODE: if the job has a description but no user-defined skill
-    weights, auto_extract_job_requirements() fills everything in
-    automatically — no user input needed.
-
-    Returns: float in [0.0, 100.0]
+    Weighted ensemble. Returns float in [0.0, 100.0].
+    Always re-extracts job requirements fresh from JD text.
+    Adapts weights based on whether the JD is structured or vague.
     """
-
     if not job_requirements:
         return 0.0
 
-    # ── Auto-fill missing job requirements from description ───────────
-    # If the user did not define any skills/weights, extract them
-    # automatically from the job description text.
     jd_text = job_description_text or getattr(job_requirements, "job_description", "")
 
-    if not job_requirements.skillname_skillweight_dict and jd_text:
+    # Always re-extract — never trust stale DB skills
+    if jd_text:
         auto = auto_extract_job_requirements(
             job_description=jd_text,
-            job_title=job_requirements.job_title or "",
+            job_title=getattr(job_requirements, "job_title", "") or "",
         )
         job_requirements.skillname_skillweight_dict = auto["skills"]
-        if not job_requirements.min_edu or job_requirements.min_edu == "none":
-            job_requirements.min_edu = auto["min_edu"]
-        if not job_requirements.min_years_exp:
-            job_requirements.min_years_exp = auto["min_years_exp"]
-        if not job_requirements.min_edu_weight:
-            job_requirements.min_edu_weight = auto["min_edu_weight"]
-        if not job_requirements.min_exp_weight:
-            job_requirements.min_exp_weight = auto["min_exp_weight"]
+        job_requirements.min_edu = auto["min_edu"]
+        job_requirements.min_years_exp = auto["min_years_exp"]
+        job_requirements.min_edu_weight = auto["min_edu_weight"]
+        job_requirements.min_exp_weight = auto["min_exp_weight"]
+        jd_structured = auto.get("jd_structured", True)
+    else:
+        jd_structured = True
 
-    # Use the job description as the JD text for text-based algorithms
     if not jd_text:
-        jd_text = " ".join(job_requirements.skillname_skillweight_dict.keys())
+        jd_text = " ".join((job_requirements.skillname_skillweight_dict or {}).keys())
 
-    # ── Weights for the full ensemble ────────────────────────────────
-    #
-    #  With raw text:  all algorithms run
-    #  Without text:   falls back to NER + exp + edu only
-    #
     has_text = bool(resume_text and jd_text)
     sbert_available = _get_sbert_model() is not None
-    spacy_available = _get_nlp() is not None
 
+    # ── Weights adapt to JD quality ───────────────────────────────────
+    # Structured JD: skill matching is reliable → W_SEMANTIC=0.45
+    # Vague JD:      text similarity + exp are the real signals → W_SEMANTIC=0.20
     if has_text and sbert_available:
-        # Full mode — all algorithms active
-        W_SBERT = 0.30  # Algorithm 4 — deep semantic understanding
-        W_TFIDF = 0.15  # Algorithm 1 — keyword frequency
-        W_BM25 = 0.10  # Algorithm 2 — probabilistic ranking
-        W_SEMANTIC = 0.25  # Algorithm 3 — spaCy NER lemma match
-        W_EXP = 0.12  # structured experience score
-        W_EDU = 0.08  # structured education score
+        if jd_structured:
+            W_SBERT = 0.10
+            W_TFIDF = 0.08
+            W_BM25 = 0.12
+            W_SEMANTIC = 0.45
+            W_EXP = 0.20
+            W_EDU = 0.05
+        else:
+            W_SBERT = 0.15
+            W_TFIDF = 0.15
+            W_BM25 = 0.20
+            W_SEMANTIC = 0.20
+            W_EXP = 0.25
+            W_EDU = 0.05
     elif has_text:
-        # SBERT not installed — 4-algorithm mode
-        W_SBERT = 0.0
-        W_TFIDF = 0.20
-        W_BM25 = 0.15
-        W_SEMANTIC = 0.35
-        W_EXP = 0.20
-        W_EDU = 0.10
+        if jd_structured:
+            W_SBERT = 0.0
+            W_TFIDF = 0.10
+            W_BM25 = 0.15
+            W_SEMANTIC = 0.45
+            W_EXP = 0.25
+            W_EDU = 0.05
+        else:
+            # Vague paragraph JD — text similarity + experience dominate
+            W_SBERT = 0.0
+            W_TFIDF = 0.20
+            W_BM25 = 0.25
+            W_SEMANTIC = 0.20
+            W_EXP = 0.30
+            W_EDU = 0.05
     else:
-        # No raw text — NER + exp + edu only
         W_SBERT = 0.0
         W_TFIDF = 0.0
         W_BM25 = 0.0
-        W_SEMANTIC = 0.55
+        W_SEMANTIC = 0.60
         W_EXP = 0.30
-        W_EDU = 0.15
+        W_EDU = 0.10
 
-    total_score = 0.0
+    total = 0.0
 
-    # ── Algorithm 1: TF-IDF Cosine Similarity ─────────────────────────
     if has_text:
-        tfidf_score = _tfidf_cosine(resume_text, jd_text)
-        total_score += tfidf_score * W_TFIDF
+        total += _tfidf_cosine(resume_text, jd_text) * W_TFIDF
+        total += _bm25(jd_text, resume_text) * W_BM25
 
-    # ── Algorithm 2: BM25 (Okapi) ─────────────────────────────────────
-    if has_text:
-        bm25_score = _bm25(jd_text, resume_text)
-        total_score += bm25_score * W_BM25
-
-    # ── Algorithm 3: spaCy NER Skill Match ────────────────────────────
-    job_skills_dict = job_requirements.skillname_skillweight_dict or {}
-    semantic_score, matched_skills, missing_skills = _semantic_skill_score(
+    job_skills = job_requirements.skillname_skillweight_dict or {}
+    sem, matched, missing = _semantic_skill_score(
         resume_text if resume_text else " ".join(extracted_skills),
-        job_skills_dict,
+        job_skills,
     )
-    total_score += semantic_score * W_SEMANTIC
+    total += sem * W_SEMANTIC
 
-    # ── Algorithm 4: SBERT + Cosine Similarity ────────────────────────
     if has_text and sbert_available:
-        sbert_score = _sbert_cosine(resume_text, jd_text)
-        total_score += sbert_score * W_SBERT
+        total += _sbert_cosine(resume_text, jd_text) * W_SBERT
 
-    # ── Experience Score ──────────────────────────────────────────────
-    # Skipped entirely if experience was not mentioned in the JD (weight = 0).
-    min_exp_weight_val = job_requirements.min_exp_weight or 0
-    if min_exp_weight_val > 0:
+    # Experience
+    exp_w = job_requirements.min_exp_weight or 0
+    if exp_w > 0:
         min_exp = job_requirements.min_years_exp or 0
         if min_exp <= 0:
-            exp_score = 1.0
+            e = 1.0
         elif extracted_experience >= min_exp:
-            exp_score = min(1.0, 0.9 + (extracted_experience - min_exp) * 0.02)
+            e = min(1.0, 0.9 + (extracted_experience - min_exp) * 0.02)
         else:
-            exp_score = extracted_experience / min_exp
-        exp_weight_factor = min_exp_weight_val / 100.0
-        total_score += exp_score * W_EXP * (1 + exp_weight_factor)
+            e = extracted_experience / min_exp
+        total += e * W_EXP * (1 + exp_w / 100.0)
 
-    # ── Education Score ───────────────────────────────────────────────
-    # Skipped entirely if education was not mentioned in the JD (weight = 0).
-    min_edu_weight_val = job_requirements.min_edu_weight or 0
-    if min_edu_weight_val > 0:
-        candidate_edu = EDUCATION_LEVELS.get(extracted_education.lower().strip(), 0)
-        required_edu = EDUCATION_LEVELS.get(
+    # Education
+    edu_w = job_requirements.min_edu_weight or 0
+    if edu_w > 0:
+        c_edu = EDUCATION_LEVELS.get(extracted_education.lower().strip(), 0)
+        r_edu = EDUCATION_LEVELS.get(
             (job_requirements.min_edu or "none").lower().strip(), 0
         )
-        edu_score = min(1.0, candidate_edu / required_edu) if required_edu > 0 else 1.0
-        edu_weight_factor = min_edu_weight_val / 100.0
-        total_score += edu_score * W_EDU * (1 + edu_weight_factor)
+        edu_s = min(1.0, c_edu / r_edu) if r_edu > 0 else 1.0
+        total += edu_s * W_EDU * (1 + edu_w / 100.0)
 
-    # ── Normalize to 0–100 and clamp ─────────────────────────────────
-    final = total_score * 100.0
-    return round(min(100.0, max(0.0, final)), 1)
-
-
-# ──────────────────────────────────────────────
-# HELPER — get matched/missing skills for display
-# ──────────────────────────────────────────────
+    return round(min(100.0, max(0.0, total * 100.0)), 1)
 
 
 def get_skill_breakdown(
     resume_text: str,
-    job_skill_dict: dict[str, int],
+    job_skill_dict: dict,
 ) -> tuple[list[str], list[str]]:
-    """
-    Returns (matched_skills, missing_skills) for a resume vs job.
-    Useful for showing detailed feedback in your UI.
-    """
     _, matched, missing = _semantic_skill_score(resume_text, job_skill_dict)
     return matched, missing
