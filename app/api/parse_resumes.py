@@ -22,6 +22,76 @@ from .models.models import Candidate
 from .utils.utils import Utils
 from .models.ats_scorer import calculate_match_score as advanced_score
 
+
+# ── CV skill display helper ───────────────────────────────────────────
+# Reads the candidate's own SKILLS section directly from their CV text.
+# Does NOT filter through JD skills — shows what the candidate actually has.
+def _extract_cv_skills_for_display(cv_text: str) -> list[str]:
+    import re
+
+    SKILL_HEADERS = {
+        "skills",
+        "technical skills",
+        "core skills",
+        "key skills",
+        "competencies",
+        "technologies",
+        "tools",
+        "expertise",
+        "proficiencies",
+        "technical expertise",
+        "technical competencies",
+    }
+    STOP_HEADERS = {
+        "experience",
+        "education",
+        "projects",
+        "certifications",
+        "summary",
+        "objective",
+        "languages",
+        "awards",
+        "references",
+        "publications",
+        "interests",
+        "hobbies",
+        "achievements",
+        "employment",
+    }
+    lines = cv_text.split("\n")
+    found = []
+    inside = False
+
+    for line in lines:
+        stripped = line.strip()
+        lower = stripped.lower()
+        header = re.sub(r"[^a-z\s]", "", lower).strip()
+
+        if header in SKILL_HEADERS:
+            inside = True
+            continue
+
+        if inside and header in STOP_HEADERS and len(stripped.split()) <= 4:
+            break
+
+        if inside and stripped:
+            for part in re.split(r"[,|\n•]", stripped):
+                part = re.sub(r"^[\s\-\*\u2022\u25aa\u25ba]+", "", part).strip()
+                if part and 2 <= len(part) <= 40 and len(part.split()) <= 5:
+                    found.append(part)
+
+    # Deduplicate preserving order
+    seen = set()
+    result = []
+    for s in found:
+        key = s.lower()
+        if key not in seen:
+            seen.add(key)
+            result.append(s)
+
+    return result
+
+
 # endregion
 # #####################################################################
 
@@ -55,7 +125,7 @@ def parse_resumes_page():
 
 @parse_resumes_bp.route("/add_job", methods=["POST"])
 def add_job_submit():
-    job_title       = Utils.request_form_get("job_title")
+    job_title = Utils.request_form_get("job_title")
     job_description = Utils.request_form_get("job_description")
 
     if not job_title or not job_title.strip():
@@ -63,11 +133,15 @@ def add_job_submit():
         return redirect("/parse_resumes")
 
     if not job_description or not job_description.strip():
-        flash("Job description is required so the system can auto-extract skills and requirements.", "error")
+        flash(
+            "Job description is required so the system can auto-extract skills and requirements.",
+            "error",
+        )
         return redirect("/parse_resumes")
 
     # Auto-extract skills, education, experience, and weights from the JD
     from .models.ats_scorer import auto_extract_job_requirements
+
     auto = auto_extract_job_requirements(
         job_description=job_description,
         job_title=job_title,
@@ -150,19 +224,17 @@ def add_candidates_submit():
                 extracted_education = Extractors.extract_education(file_text)
                 extracted_experience = Extractors.extract_experience_years(file_text)
 
-                # 🛠️ Extract skills as a clean List directly
-                extracted_skills_list = Extractors.extract_skills(
-                    file_text, target_job.skillname_skillweight_dict
-                )
+                # Extract skills from the CV's own skills section directly
+                extracted_skills_list = _extract_cv_skills_for_display(file_text)
 
-                # 2. Calculate the advanced match score using TF-IDF + BM25 + spaCy NER ensemble
+                # Calculate the advanced match score
                 calculated_score = advanced_score(
                     extracted_skills=extracted_skills_list,
                     extracted_education=extracted_education,
                     extracted_experience=extracted_experience,
                     job_requirements=target_job,
                     resume_text=file_text,
-                    job_description_text=target_job.job_description,  # real JD text
+                    job_description_text=target_job.job_description,
                 )
 
                 # 3. Insert candidate: Pass extracted_skills_list directly as a list to avoid double-join artifacts
