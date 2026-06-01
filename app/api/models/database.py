@@ -114,6 +114,7 @@ class Database:
                     {CandidatesCol.ORIGINAL_FILENAME} TEXT,
                     {CandidatesCol.FILE_PATH} TEXT,
                     {CandidatesCol.FILE_SIZE} REAL,
+                    {CandidatesCol.FILE_TEXT} TEXT,
                     {CandidatesCol.EDUCATION} TEXT,
                     {CandidatesCol.SKILLS} TEXT,
                     {CandidatesCol.EXPERIENCE} INTEGER,
@@ -171,7 +172,9 @@ class Database:
             # Migration: add description column to existing databases that don't have it yet
             existing_cols = [
                 row[1]
-                for row in conn.execute(f"PRAGMA table_info({JobsCol.TABLE_NAME})").fetchall()
+                for row in conn.execute(
+                    f"PRAGMA table_info({JobsCol.TABLE_NAME})"
+                ).fetchall()
             ]
             if JobsCol.DESCRIPTION not in existing_cols:
                 conn.execute(
@@ -203,7 +206,9 @@ class Database:
                 f"SELECT sql FROM sqlite_master WHERE type='table' AND name='{CandidatesCol.TABLE_NAME}'"
             ).fetchone()
             if old_schema and "email text unique" in (old_schema[0] or "").lower():
-                conn.execute(f"ALTER TABLE {CandidatesCol.TABLE_NAME} RENAME TO _candidates_old")
+                conn.execute(
+                    f"ALTER TABLE {CandidatesCol.TABLE_NAME} RENAME TO _candidates_old"
+                )
                 conn.execute(f"""
                     CREATE TABLE {CandidatesCol.TABLE_NAME} (
                         {CandidatesCol.ID} INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -226,9 +231,13 @@ class Database:
                         UNIQUE ({CandidatesCol.JOB_ID}, {CandidatesCol.PHONE})
                     )
                 """)
-                conn.execute(f"INSERT INTO {CandidatesCol.TABLE_NAME} SELECT * FROM _candidates_old")
+                conn.execute(
+                    f"INSERT INTO {CandidatesCol.TABLE_NAME} SELECT * FROM _candidates_old"
+                )
                 conn.execute("DROP TABLE _candidates_old")
-                print("✓ Migrated candidates table: global email/phone UNIQUE → per-job UNIQUE")
+                print(
+                    "✓ Migrated candidates table: global email/phone UNIQUE → per-job UNIQUE"
+                )
 
             conn.commit()
             print("✓ Database initialized successfully with all tables and triggers")
@@ -650,6 +659,105 @@ class Database:
         except Exception as e:
             return False, f"Unexpected Error While Deleting Job: {str(e)}"
 
+    @classmethod
+    def UPDATE_job(
+        cls,
+        job_id: int,
+        user_id: int,
+        job_title: str,
+        job_description: str,
+        min_edu: str,
+        min_years_exp: int,
+        min_edu_weight: int,
+        min_exp_weight: int,
+        skill_name_weight: dict[str, int],
+    ) -> tuple[bool, str]:
+        """Update a job and its skills for a specific user"""
+
+        conn = None
+        try:
+            # Start transaction
+            conn = cls.begin_transaction()
+            cursor = conn.cursor()
+
+            # Update job details
+            affected_rows = cursor.execute(
+                f"""
+                UPDATE {JobsCol.TABLE_NAME}
+                SET {JobsCol.TITLE} = ?, {JobsCol.DESCRIPTION} = ?, {JobsCol.MIN_EDU} = ?, {JobsCol.MIN_YEARS_EXP} = ?, {JobsCol.MIN_EDU_WEIGHT} = ?, {JobsCol.MIN_EXP_WEIGHT} = ?
+                WHERE {JobsCol.ID} = ? AND {JobsCol.USER_ID} = ?
+                """,
+                (
+                    job_title,
+                    job_description,
+                    min_edu,
+                    min_years_exp,
+                    min_edu_weight,
+                    min_exp_weight,
+                    job_id,
+                    user_id,
+                ),
+            ).rowcount
+
+            if not affected_rows or affected_rows == 0:
+                cls.rollback_transaction(conn)
+                return False, "No job found with that ID for this user."
+
+            # Delete existing skills
+            cursor.execute(
+                f"DELETE FROM {JobSkillsCol.TABLE_NAME} WHERE {JobSkillsCol.JOB_ID} = ?",
+                (job_id,),
+            )
+
+            # Insert new skills
+            for skill_name, skill_weight in skill_name_weight.items():
+                cursor.execute(
+                    f"""
+                    INSERT INTO {JobSkillsCol.TABLE_NAME}
+                    ({JobSkillsCol.JOB_ID}, {JobSkillsCol.NAME}, {JobSkillsCol.WEIGHT})
+                    VALUES (?, ?, ?)
+                    """,
+                    (job_id, skill_name, skill_weight),
+                )
+
+            # Commit all changes
+            cls.commit_transaction(conn)
+            return True, "Job updated successfully!"
+
+        except sqlite3.IntegrityError as e:
+            if conn:
+                cls.rollback_transaction(conn)
+            error_msg = str(e)
+            if JobsCol.TITLE in error_msg:
+                return False, f"Title '{job_title}' Is Already Used."
+            return False, f"Database Integrity Error: {error_msg}"
+
+    @classmethod
+    def UPDATE_job_title(
+        cls, job_id: int, user_id: int, new_title: str
+    ) -> tuple[bool, str]:
+        """Update the title of a job for a specific user"""
+
+        try:
+            affected_rows = cls.execute_set(
+                f"""
+                UPDATE {JobsCol.TABLE_NAME}
+                SET {JobsCol.TITLE} = ?
+                WHERE {JobsCol.ID} = ? AND {JobsCol.USER_ID} = ?
+                """,
+                (new_title, job_id, user_id),
+            )
+
+            if not affected_rows or affected_rows == 0:
+                return False, "No job found with that ID for this user."
+            return True, "Job title updated successfully!"
+
+        except sqlite3.IntegrityError as e:
+            error_msg = str(e)
+            if JobsCol.TITLE in error_msg:
+                return False, f"Title '{new_title}' Is Already Used."
+            return False, f"Database Integrity Error: {error_msg}"
+
     # endregion
     # region CANDIDATE QUERIES
 
@@ -665,6 +773,7 @@ class Database:
         original_filename: str,
         file_path: str,
         file_size: float,
+        file_text: str,
         education: str,
         skills: str,
         experience_years: int,
@@ -676,8 +785,8 @@ class Database:
             cls.execute_set(
                 f"""
                 INSERT INTO {CandidatesCol.TABLE_NAME}
-                ({CandidatesCol.JOB_ID}, {CandidatesCol.USER_ID}, {CandidatesCol.NAME}, {CandidatesCol.EMAIL}, {CandidatesCol.PHONE}, {CandidatesCol.FILENAME}, {CandidatesCol.ORIGINAL_FILENAME}, {CandidatesCol.FILE_PATH}, {CandidatesCol.FILE_SIZE}, {CandidatesCol.EDUCATION}, {CandidatesCol.SKILLS}, {CandidatesCol.EXPERIENCE}, {CandidatesCol.MATCH_SCORE})
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ({CandidatesCol.JOB_ID}, {CandidatesCol.USER_ID}, {CandidatesCol.NAME}, {CandidatesCol.EMAIL}, {CandidatesCol.PHONE}, {CandidatesCol.FILENAME}, {CandidatesCol.ORIGINAL_FILENAME}, {CandidatesCol.FILE_PATH}, {CandidatesCol.FILE_SIZE}, {CandidatesCol.FILE_TEXT}, {CandidatesCol.EDUCATION}, {CandidatesCol.SKILLS}, {CandidatesCol.EXPERIENCE}, {CandidatesCol.MATCH_SCORE})
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     job_id,
@@ -689,6 +798,7 @@ class Database:
                     original_filename,
                     file_path,
                     file_size,
+                    file_text,
                     education,
                     skills,
                     experience_years,
@@ -751,6 +861,7 @@ class Database:
                     original_filename=c[CandidatesCol.ORIGINAL_FILENAME],
                     file_path=c[CandidatesCol.FILE_PATH],
                     file_size=c[CandidatesCol.FILE_SIZE],
+                    file_text=c[CandidatesCol.FILE_TEXT],
                     education=c[CandidatesCol.EDUCATION],
                     skills=c[CandidatesCol.SKILLS],
                     experience_years=c[CandidatesCol.EXPERIENCE],
@@ -786,6 +897,7 @@ class Database:
             original_filename=candidate_data[CandidatesCol.ORIGINAL_FILENAME],
             file_path=candidate_data[CandidatesCol.FILE_PATH],
             file_size=candidate_data[CandidatesCol.FILE_SIZE],
+            file_text=candidate_data[CandidatesCol.FILE_TEXT],
             education=candidate_data[CandidatesCol.EDUCATION],
             skills=candidate_data[CandidatesCol.SKILLS],
             experience_years=candidate_data[CandidatesCol.EXPERIENCE],
@@ -824,6 +936,32 @@ class Database:
 
         except Exception as e:
             return False, f"Unexpected Error While Deleting Candidate: {str(e)}"
+
+    @classmethod
+    def UPDATE_candidate_match_score(
+        cls, candidate_id: int, user_id: int, new_score: float
+    ) -> tuple[bool, str]:
+        """Update the match score for a candidate"""
+        try:
+            affected_rows = cls.execute_set(
+                f"""
+                UPDATE {CandidatesCol.TABLE_NAME}
+                SET {CandidatesCol.MATCH_SCORE} = ?
+                WHERE {CandidatesCol.ID} = ? AND {CandidatesCol.USER_ID} = ?
+                """,
+                (new_score, candidate_id, user_id),
+            )
+
+            if affected_rows and affected_rows > 0:
+                return True, "Candidate match score updated successfully!"
+            else:
+                return False, "Error updating the candidate's match score!"
+
+        except Exception as e:
+            return (
+                False,
+                f"Unexpected Error While Updating Candidate Match Score: {str(e)}",
+            )
 
     # endregion
 

@@ -11,20 +11,19 @@ const noSearchResultsRow = document.getElementById('no_search_results');
 
 const selectedJobIDHiddenInput = document.getElementById('selected_job_id');
 
+const editJobWindow = document.getElementById('editJob-window');
+
 let selectedJobElement = null;
 
 // endregion
 
 // region EVENT LISTENERS
 
-document.addEventListener('DOMContentLoaded', () =>
-{
+document.addEventListener('DOMContentLoaded', () => {
     const lastJobId = sessionStorage.getItem('lastSelectedJobId');
-    if (lastJobId)
-    {
+    if (lastJobId) {
         const jobCard = document.querySelector(`.job-card[data-job-id="${lastJobId}"]`);
-        if (jobCard)
-        {
+        if (jobCard) {
             selectJob(jobCard);
         }
     }
@@ -36,16 +35,13 @@ document.addEventListener('DOMContentLoaded', () =>
 
 // region setMatchScoreColors
 
-function setMatchScoreColors()
-{
+function setMatchScoreColors() {
     const scoreCells = document.querySelectorAll('.match-score');
 
-    scoreCells.forEach((cell) =>
-    {
+    scoreCells.forEach((cell) => {
         const score = parseFloat(cell.textContent);
 
-        if (!isNaN(score))
-        {
+        if (!isNaN(score)) {
             const ratio = Math.min(100, Math.max(0, score)) / 100;
 
             const red = Math.floor(255 * clamp(1 - ratio, 0, 0.45) * 2); // 0.5 to 1 maps to 255-0 red and 0 to 0.5 maps to 255 red
@@ -60,19 +56,16 @@ function setMatchScoreColors()
 // endregion
 // region searchTable
 
-function searchTable()
-{
+function searchTable() {
     const searchTerm = searchCandidatesTableInput.value.toLowerCase().trim();
     const tbody = candidatesTable.querySelector('tbody');
     const rows = tbody.querySelectorAll('tr');
 
     let hasMatches = false;
 
-    rows.forEach((row) =>
-    {
+    rows.forEach((row) => {
         // Skip the "no results" row
-        if (row.id === 'noResultsRow')
-        {
+        if (row.id === 'noResultsRow') {
             return;
         }
 
@@ -80,18 +73,15 @@ function searchTable()
         const cells = row.querySelectorAll('td:not(.checkbox-col)');
         let rowText = '';
 
-        cells.forEach((cell) =>
-        {
+        cells.forEach((cell) => {
             rowText += cell.textContent.toLowerCase() + ' ';
         });
 
         // Check if search term matches any content in the row
-        if (searchTerm === '' || rowText.includes(searchTerm))
-        {
+        if (searchTerm === '' || rowText.includes(searchTerm)) {
             row.style.display = ''; // Show row
             hasMatches = true;
-        } else
-        {
+        } else {
             row.style.display = 'none'; // Hide row
         }
     });
@@ -99,11 +89,9 @@ function searchTable()
     // Update clear button disabled state
     clearSearchInputBtn.disabled = searchTerm === '';
 
-    if (!hasMatches)
-    {
+    if (!hasMatches) {
         noSearchResultsRow.style.display = 'block';
-    } else
-    {
+    } else {
         noSearchResultsRow.style.display = 'none';
     }
     // Optional: Show "no results" message
@@ -112,8 +100,7 @@ function searchTable()
 // endregion
 // region selectJob
 
-function selectJob(newElement)
-{
+function selectJob(newElement) {
     // Do Nothing If The Selected Job Card Is Reselected.
     if (selectedJobElement === newElement) return;
 
@@ -121,8 +108,7 @@ function selectJob(newElement)
     selectedJobIDHiddenInput.value = selectedJobElement.dataset.jobId;
 
     // Update active state in UI
-    document.querySelectorAll('.job-card').forEach(card =>
-    {
+    document.querySelectorAll('.job-card').forEach(card => {
         card.classList.remove('active');
     });
     selectedJobElement.classList.add('active');
@@ -148,8 +134,7 @@ function selectJob(newElement)
 // endregion
 // region updateCandidatesTable
 
-function updateCandidatesTable()
-{
+function updateCandidatesTable() {
     const candidates = JSON.parse(selectedJobElement.dataset.candidates);
     const selectedJobId = selectedJobElement.dataset.jobId;
 
@@ -159,8 +144,7 @@ function updateCandidatesTable()
     // Clear existing rows
     tbody.innerHTML = '';
 
-    if (!candidates)
-    {
+    if (!candidates) {
         const noCandidatesRow = tbody.insertRow();
         noCandidatesRow.id = 'noResultsRow';
         noCandidatesRow.style.display = 'table-row';
@@ -170,8 +154,7 @@ function updateCandidatesTable()
         cell.style.textAlign = 'center';
     }
 
-    if (candidates.length === 0)
-    {
+    if (candidates.length === 0) {
         const noCandidatesRow = tbody.insertRow();
         noCandidatesRow.id = 'noResultsRow';
         noCandidatesRow.style.display = 'table-row';
@@ -182,8 +165,7 @@ function updateCandidatesTable()
         return;
     }
     // Add new rows for candidates
-    candidates.forEach(candidate =>
-    {
+    candidates.forEach(candidate => {
         const row = tbody.insertRow();
 
         row.insertCell(0).innerHTML =
@@ -195,8 +177,7 @@ function updateCandidatesTable()
 
         // View Resume link/button - Fixed to route via Candidate ID (100% Guaranteed)
         const resumeCell = row.insertCell(4);
-        if (candidate.id)
-        {
+        if (candidate.id) {
             const resumeLink = document.createElement('a');
             // We pass the candidate ID which is verified in console log
             resumeLink.href = `/parse_resumes/view_resume/${candidate.id}`;
@@ -205,8 +186,7 @@ function updateCandidatesTable()
             resumeLink.target = '_blank';
             resumeLink.style.textDecoration = 'none';
             resumeCell.appendChild(resumeLink);
-        } else
-        {
+        } else {
             resumeCell.textContent = 'N/A';
         }
         row.insertCell(5).textContent = candidate.education || 'N/A';
@@ -225,8 +205,7 @@ function updateCandidatesTable()
 // endregion
 // region updateJobDetailsTable
 
-function updateJobDetailsTable(jobData)
-{
+function updateJobDetailsTable(jobData) {
     // Get the table body
     const tbody = jobDetailsTable.querySelector('tbody');
 
@@ -237,8 +216,7 @@ function updateJobDetailsTable(jobData)
     const skills = Object.entries(jobData.skill_name_weight || {});
 
     // Add Skills section with rowspan
-    if (skills.length > 0)
-    {
+    if (skills.length > 0) {
         // First skill row with rowspan
         const firstSkillRow = tbody.insertRow();
         firstSkillRow.style.backgroundColor = '#f8f9fa';
@@ -251,16 +229,14 @@ function updateJobDetailsTable(jobData)
         firstSkillRow.insertCell(2).textContent = `${skills[0][1]}%`;
 
         // Remaining skills
-        for (let i = 1; i < skills.length; i++)
-        {
+        for (let i = 1; i < skills.length; i++) {
             const skillRow = tbody.insertRow();
             skillRow.style.backgroundColor = '#f8f9fa';
             // skillRow.insertCell(0); // Empty cell (because of rowspan)
             skillRow.insertCell(0).textContent = skills[i][0];
             skillRow.insertCell(1).textContent = `${skills[i][1]}%`;
         }
-    } else
-    {
+    } else {
         // No skills case
         const noSkillsRow = tbody.insertRow();
         noSkillsRow.style.backgroundColor = '#f8f9fa';
@@ -287,8 +263,7 @@ function updateJobDetailsTable(jobData)
 // endregion
 // region getSelectedCandidatesIds
 
-function getSelectedCandidatesIds()
-{
+function getSelectedCandidatesIds() {
     const checkboxes = candidatesTable.querySelectorAll('.candidate-checkbox:checked');
     const candidateIdsToDelete = Array.from(checkboxes).map(cb => cb.dataset.candidateId);
 
@@ -300,12 +275,10 @@ function getSelectedCandidatesIds()
 // endregion
 // region attachCheckboxListeners
 
-function attachCheckboxListeners()
-{
+function attachCheckboxListeners() {
     const checkboxes = candidatesTable.querySelectorAll('.candidate-checkbox');
 
-    checkboxes.forEach(checkbox =>
-    {
+    checkboxes.forEach(checkbox => {
         checkbox.removeEventListener('change', updateDeleteButtonState);
         checkbox.addEventListener('change', updateDeleteButtonState);
     });
@@ -317,15 +290,19 @@ function attachCheckboxListeners()
 // endregion
 // region updateDeleteButtonState
 
-function updateDeleteButtonState()
-{
+function updateDeleteButtonState() {
     const deleteButton = document.getElementById('delete-candidate-submit-button');
     const selectedCheckboxes = candidatesTable.querySelectorAll('.candidate-checkbox:checked');
 
-    if (deleteButton)
-    {
+    if (deleteButton) {
         deleteButton.disabled = selectedCheckboxes.length === 0;
     }
+}
+
+function updateEditJobWindow(jobId, jobTitle, jobDescription) {
+    editJobWindow.querySelector('#edited_job_title').value = jobTitle;
+    editJobWindow.querySelector('#edited_job_description').value = jobDescription;
+    editJobWindow.querySelector('#edited_job_id').value = jobId;
 }
 
 // endregion

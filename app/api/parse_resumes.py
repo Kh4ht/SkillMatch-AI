@@ -18,9 +18,9 @@ from werkzeug.utils import secure_filename
 # Local imports
 from config import Config
 from .models.extractors import Extractors
-from .models.models import Candidate
+from .models.models import Candidate, Job
 from .utils.utils import Utils
-from .models.ats_scorer import calculate_match_score as advanced_score
+from .models.ats_scorer import calculate_match_score
 
 
 # ── CV skill display helper ───────────────────────────────────────────
@@ -169,6 +169,111 @@ def add_job_submit():
 # #####################################################################
 
 # #####################################################################
+# region DELETE JOB
+
+
+@parse_resumes_bp.route("/delete_job", methods=["POST"])
+@login_required
+def delete_job_submit():
+    job_id = Utils.request_form_get_as_int("job_id")
+
+    success, error_msg = current_user.delete_job(job_id=job_id)
+
+    if success:
+        flash(error_msg, "success")
+    else:
+        flash(error_msg, "error")
+
+    return redirect("/parse_resumes")
+
+
+# endregion
+# #####################################################################
+
+# #####################################################################
+# region EDIT JOB
+
+
+@parse_resumes_bp.route("/edit_job", methods=["POST"])
+def edit_job_submit():
+    job_id = Utils.request_form_get_as_int("edited_job_id")
+    job_title = Utils.request_form_get("edited_job_title")
+    job_description = Utils.request_form_get("edited_job_description")
+
+    if not job_title or not job_title.strip():
+        flash("Job title is required.", "error")
+        return redirect("/parse_resumes")
+
+    if not job_description or not job_description.strip():
+        flash(
+            "Job description is required so the system can auto-extract skills and requirements.",
+            "error",
+        )
+        return redirect("/parse_resumes")
+
+    edited_job: Job | None = current_user.get_job(
+        job_id
+    )  # Just to check if job exists and belongs to user before auto-extracting
+
+    if edited_job is None:
+        flash("Job not found, ID could be wrong.", "error")
+        return redirect("/parse_resumes")
+
+    if (
+        edited_job.job_title == job_title
+        and edited_job.job_description == job_description
+    ):  # No changes made if both title and description are the same as before
+        flash("No changes detected in job title or description.", "info")
+        return redirect("/parse_resumes")
+
+    if (
+        edited_job.job_title != job_title
+        and edited_job.job_description == job_description
+    ):
+        current_user.update_job_title(job_id=job_id, job_title=job_title)
+        flash("Job title updated successfully.", "success")
+        return redirect("/parse_resumes")
+
+    # Auto-extract skills, education, experience, and weights from the JD
+    from .models.ats_scorer import auto_extract_job_requirements
+
+    auto = auto_extract_job_requirements(
+        job_description=job_description,
+        job_title=job_title,
+    )
+
+    # Update the job with new title, description, and auto-extracted requirements
+    success, error_msg = current_user.update_job(
+        job_id=job_id,
+        job_title=job_title,
+        job_description=job_description,
+        min_edu=auto["min_edu"],
+        min_years_exp=auto["min_years_exp"],
+        min_edu_weight=auto["min_edu_weight"],
+        min_exp_weight=auto["min_exp_weight"],
+        skill_name_weight=auto["skills"],
+    )
+
+    if not success:
+        flash(error_msg, "error")
+
+    # After editing the job, recalculate match scores for all candidates under this job
+    success, error_msg = current_user.recalculate_all_candidate_match_score(
+        job_id=job_id
+    )
+
+    if success:
+        flash(
+            "Job updated successfully, and candidates match score updated.", "success"
+        )
+
+    return redirect("/parse_resumes")
+
+
+# endregion
+# #####################################################################
+
+# #####################################################################
 # region ADD CANDIDATES
 
 
@@ -228,7 +333,7 @@ def add_candidates_submit():
                 extracted_skills_list = _extract_cv_skills_for_display(file_text)
 
                 # Calculate the advanced match score
-                calculated_score = advanced_score(
+                calculated_score = calculate_match_score(
                     extracted_skills=extracted_skills_list,
                     extracted_education=extracted_education,
                     extracted_experience=extracted_experience,
@@ -247,6 +352,7 @@ def add_candidates_submit():
                     original_filename=original_filename,
                     file_path=file_path,
                     file_size=float(file_size_bytes),
+                    file_text=file_text,
                     education=extracted_education,
                     skills=extracted_skills_list,  # 👈 مرر القائمة مباشرة هنا لحل التشوهات
                     experience_years=extracted_experience,
@@ -282,28 +388,6 @@ def add_candidates_submit():
             f'Failed to upload {len(failed_uploads)} file(s): {", ".join(failed_uploads[0])}',
             "error",
         )
-
-    return redirect("/parse_resumes")
-
-
-# endregion
-# #####################################################################
-
-# #####################################################################
-# region DELETE JOB
-
-
-@parse_resumes_bp.route("/delete_job", methods=["POST"])
-@login_required
-def delete_job_submit():
-    job_id = Utils.request_form_get_as_int("job_id")
-
-    success, error_msg = current_user.delete_job(job_id=job_id)
-
-    if success:
-        flash(error_msg, "success")
-    else:
-        flash(error_msg, "error")
 
     return redirect("/parse_resumes")
 

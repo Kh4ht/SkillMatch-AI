@@ -80,6 +80,7 @@ class Candidate:
         original_filename,
         file_path,
         file_size,
+        file_text,
         experience_years,
         match_score,
         education,
@@ -97,6 +98,7 @@ class Candidate:
         self.original_filename: str = original_filename
         self.file_path: str = file_path
         self.file_size: float = file_size
+        self.file_text: str = file_text
         self.experience_years: int = experience_years
         self.match_score: float = match_score
         self.skills: list[str] = skills
@@ -244,7 +246,9 @@ class User(UserMixin):
             return False, "New password must be at least 8 characters."
 
         new_hash = generate_password_hash(new_password)
-        return Database.UPDATE_user_password(user_id=self.id, new_password_hash=new_hash)
+        return Database.UPDATE_user_password(
+            user_id=self.id, new_password_hash=new_hash
+        )
 
     def delete_account(self) -> tuple[bool, str]:
         """Permanently delete this user account."""
@@ -277,6 +281,33 @@ class User(UserMixin):
             skill_name_weight=skill_name_weight,
         )
 
+    def update_job(
+        self,
+        job_id: int,
+        job_title: str,
+        job_description: str,
+        min_edu: str,
+        min_years_exp: int,
+        min_edu_weight: int,
+        min_exp_weight: int,
+        skill_name_weight: dict[str, int],
+    ) -> tuple[bool, str]:
+        """Update an existing job"""
+
+        from .database import Database
+
+        return Database.UPDATE_job(
+            user_id=self.id,
+            job_id=job_id,
+            job_title=job_title,
+            job_description=job_description,
+            min_edu=min_edu,
+            min_years_exp=min_years_exp,
+            min_edu_weight=min_edu_weight,
+            min_exp_weight=min_exp_weight,
+            skill_name_weight=skill_name_weight,
+        )
+
     def get_jobs(self) -> list[Job]:
 
         from .database import Database
@@ -298,6 +329,16 @@ class User(UserMixin):
             job_id=job_id,
         )
 
+    def update_job_title(self, job_id: int, job_title: str) -> tuple[bool, str]:
+
+        from .database import Database
+
+        return Database.UPDATE_job_title(
+            user_id=self.id,
+            job_id=job_id,
+            new_title=job_title,
+        )
+
     def add_candidate(
         self,
         job_id: int,
@@ -308,6 +349,7 @@ class User(UserMixin):
         original_filename: str,
         file_path: str,
         file_size: float,
+        file_text: str,
         education: str,
         skills: list[str],
         experience_years: int,
@@ -326,6 +368,7 @@ class User(UserMixin):
             original_filename=original_filename,
             file_path=file_path,
             file_size=file_size,
+            file_text=file_text,
             education=education,
             skills=", ".join(skills),
             experience_years=experience_years,
@@ -363,7 +406,9 @@ class User(UserMixin):
                 if os.path.exists(c.file_path):
                     os.remove(c.file_path)
                 else:
-                    logger.warning(f"Resume file not found on disk, skipping file deletion: {c.file_path}")
+                    logger.warning(
+                        f"Resume file not found on disk, skipping file deletion: {c.file_path}"
+                    )
 
             except Exception as e:
                 logger.error(f"Error deleting candidate resume file: {e}")
@@ -377,6 +422,47 @@ class User(UserMixin):
         )
 
         return success, msg
+
+    def recalculate_all_candidate_match_score(self, job_id: int) -> tuple[bool, str]:
+
+        from .database import Database
+        from .ats_scorer import calculate_match_score
+
+        # from .extractors import
+
+        candidates = self.get_candidates(job_id=job_id)
+
+        for c in candidates:
+
+            job = self.get_job(job_id=job_id)
+
+            if not job:
+                return (
+                    False,
+                    f"Job with ID {job_id} not found for user {self.username}.",
+                )
+
+            success, msg = Database.UPDATE_candidate_match_score(
+                candidate_id=c.id,
+                user_id=self.id,
+                new_score=calculate_match_score(
+                    extracted_skills=c.skills,
+                    extracted_education=c.education,
+                    extracted_experience=c.experience_years,
+                    job_requirements=job,
+                    resume_text=c.file_text,
+                    job_description_text=job.job_description,
+                ),
+            )
+            if success:
+                continue
+            else:
+                return (
+                    False,
+                    f"Failed to update match score for candidate {c.name} (ID: {c.id}): {msg}",
+                )
+
+        return (True, "All candidate match scores recalculated successfully.")
 
 
 # endregion

@@ -9,7 +9,7 @@
 # #####################################################################
 
 # #####################################################################
-# region UsersCol Class
+# region UsersCol
 
 
 class UsersCol:
@@ -44,7 +44,7 @@ class UsersCol:
 # #####################################################################
 
 # #####################################################################
-# region UserSettingsCol Class
+# region UserSettingsCol
 
 
 class UserSettingsCol:
@@ -63,7 +63,7 @@ class UserSettingsCol:
 # #####################################################################
 
 # #####################################################################
-# region JobsCol Class
+# region JobsCol
 
 
 class JobsCol:
@@ -101,7 +101,7 @@ class JobsCol:
 # #####################################################################
 
 # #####################################################################
-# region JobSkillsCol Class
+# region JobSkillsCol
 
 
 class JobSkillsCol:
@@ -122,7 +122,7 @@ class JobSkillsCol:
 # #####################################################################
 
 # #####################################################################
-# region CandidatesCol Class
+# region CandidatesCol
 
 
 class CandidatesCol:
@@ -143,6 +143,7 @@ class CandidatesCol:
     ORIGINAL_FILENAME = "original_resume_filename"
     FILE_PATH = "filepath"
     FILE_SIZE = "file_size"
+    FILE_TEXT = "file_text"
 
     # Table Name
     TABLE_NAME = "candidates"

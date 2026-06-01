@@ -75,10 +75,10 @@
         color: rgba(16, 16, 16, 1);
     }
 
-    
-    
 
-    
+
+
+
     .close {
         font-size: 28px;
         font-weight: bold;
@@ -112,7 +112,9 @@
                     <i class="fa-solid fa-ellipsis-vertical"></i>
                 </button>
                 <div class="menu-content">
-                    <a href=""><i class="fa-solid fa-pencil"></i> Edit</a>
+                    <a
+                        onclick="openWindow('editJob-window'); updateEditJobWindow('{{ job.id }}', '{{ job.job_title }}', '{{ job.job_description }}');"><i
+                            class="fa-solid fa-pencil"></i> Edit</a>
                     <form method="POST" action="{{ url_for('parse_resumes.delete_job_submit') }}"
                         onsubmit="return confirm('Are you sure you want to delete ({{ job.job_title }}) job?\nDeleting this job will also delete its candidates\' data.')">
                         <input type="hidden" name="job_id" value="{{ job.id }}">
@@ -252,6 +254,44 @@
                     required minlength="30"></textarea>
 
                 <button class="btn btn-green" type="submit" style="width: 100%; margin-top: 30px;">Add Job</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+
+<!-- Edit Job Window -->
+<div id="editJob-window" class="window">
+    <div class="window-content">
+        <div class="items-container" style="margin-bottom: 10px;">
+            <h3>Edit Job</h3>
+            <span class="close" onclick="closeWindow('editJob-window')">
+                <i class="fa-solid fa-xmark"></i>
+            </span>
+        </div>
+        <div style="min-height:14px; margin-bottom: 20px">
+            <p id="add-job-window-warning-msg"
+                style="transform-origin: left center; font-size: 12px; color: red; font-weight: bold;"></p>
+        </div>
+        <form id="editJobForm" action="{{ url_for('parse_resumes.edit_job_submit') }}" method="post">
+            <div class="vertical-container" style="margin-bottom: 50px; max-height: 400px">
+                <input type="hidden" name="edited_job_id" id="edited_job_id" value="">
+                <label>Edit Job Title *</label>
+                <input type="text" name="edited_job_title" id="edited_job_title" placeholder="e.g., Software Engineer"
+                    minlength="3" maxlength="100" required>
+
+                <label style="margin-top: 30px;">Edit Job Description *</label>
+                <p style="font-size: 12px; color: gray; margin: 4px 0 8px;">
+                    Paste the full job description. Skills, experience, and education requirements
+                    will be extracted automatically — no manual setup needed.
+                </p>
+                <textarea name="edited_job_description" id="edited_job_description"
+                    placeholder="e.g., We are looking for a Senior Python Developer with 5+ years of experience in machine learning and REST APIs. A Bachelor's degree in Computer Science is required..."
+                    rows="8"
+                    style="width: 100%; resize: vertical; padding: 10px; border-radius: 6px; border: 1px solid #ccc; font-size: 14px;"
+                    required minlength="30"></textarea>
+
+                <button class="btn btn-green" type="submit" style="width: 100%; margin-top: 30px;">Confirm</button>
             </div>
         </form>
     </div>
