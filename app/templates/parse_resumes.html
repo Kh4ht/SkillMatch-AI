@@ -112,9 +112,9 @@
                     <i class="fa-solid fa-ellipsis-vertical"></i>
                 </button>
                 <div class="menu-content">
-                    <a
+                    <button
                         onclick="openWindow('editJob-window'); updateEditJobWindow('{{ job.id }}', '{{ job.job_title }}', '{{ job.job_description }}');"><i
-                            class="fa-solid fa-pencil"></i> Edit</a>
+                            class="fa-solid fa-pencil"></i> Edit</button>
                     <form method="POST" action="{{ url_for('parse_resumes.delete_job_submit') }}"
                         onsubmit="return confirm('Are you sure you want to delete ({{ job.job_title }}) job?\nDeleting this job will also delete its candidates\' data.')">
                         <input type="hidden" name="job_id" value="{{ job.id }}">
@@ -202,7 +202,8 @@
         <table id="candidates-table" class="candidates-table">
             <thead>
                 <tr>
-                    <th style="position: sticky;" class="checkbox-col"><i class="fa-solid fa-circle-check"></i></th>
+                    <th class="checkbox-col"><input type="checkbox" class="candidate-checkbox"
+                            data-candidate-id="${candidate.id}"></th>
                     <th>Name</th>
                     <th>Email</th>
                     <th>Phone</th>
