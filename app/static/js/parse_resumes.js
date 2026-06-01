@@ -45,6 +45,8 @@ selectAllCandidates.addEventListener('change', function () {
     candidateCheckboxes.forEach(checkbox => {
         checkbox.checked = this.checked;
     });
+
+    updateDeleteButtonState();
 });
 
 // endregion
@@ -203,6 +205,7 @@ function updateCandidatesTable() {
             resumeLink.className = 'view-btn';
             resumeLink.target = '_blank';
             resumeLink.style.textDecoration = 'none';
+            resumeLink.style.fontWeight = 'bold';
             resumeCell.appendChild(resumeLink);
         } else {
             resumeCell.textContent = 'N/A';
