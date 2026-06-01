@@ -15,6 +15,8 @@ const editJobWindow = document.getElementById('editJob-window');
 
 const addCandidatesBtn = document.getElementById('add-candidates-btn');
 
+const selectAllCandidates = document.getElementById('select-all-candidates');
+
 let selectedJobElement = null;
 
 // endregion
@@ -33,6 +35,16 @@ document.addEventListener('DOMContentLoaded', () => {
     addCandidatesBtn.disabled = selectedJobElement === null;
 
     attachCheckboxListeners();
+});
+
+selectAllCandidates.addEventListener('change', function () {
+    const candidateCheckboxes = candidatesTable.querySelectorAll(
+        '#candidates-table tbody .candidate-checkbox'
+    );
+
+    candidateCheckboxes.forEach(checkbox => {
+        checkbox.checked = this.checked;
+    });
 });
 
 // endregion
