@@ -1,48 +1,14 @@
 # region IMPORTS
 
 # Standard Library Imports
-import os
 import re
-import warnings
 import pdfplumber
-from PyPDF2 import PdfReader
 from docx import Document
-import spacy
-from spacy.matcher import PhraseMatcher
 
 # Local Imports
 from ..utils.utils import Utils
 
 # endregion
-
-sample_skills_list = [
-    "python",
-    "java",
-    "c++",
-    "sql",
-    "machine learning",
-    "deep learning",
-    "tensorflow",
-    "pytorch",
-    "nlp",
-    "data analysis",
-    "excel",
-    "power bi",
-]
-
-try:
-    nlp = spacy.load("en_core_web_sm")
-except OSError:
-    warnings.warn("spaCy model 'en_core_web_sm' not found. Downloading...")
-    import subprocess
-    import sys
-
-    subprocess.run([sys.executable, "-m", "spacy", "download", "en_core_web_sm"])
-    nlp = spacy.load("en_core_web_sm")
-
-
-def normalize_skill(skill: str):
-    return skill.lower().strip()
 
 
 class Extractors:
