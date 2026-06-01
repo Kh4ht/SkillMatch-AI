@@ -13,6 +13,8 @@ const selectedJobIDHiddenInput = document.getElementById('selected_job_id');
 
 const editJobWindow = document.getElementById('editJob-window');
 
+const addCandidatesBtn = document.getElementById('add-candidates-btn');
+
 let selectedJobElement = null;
 
 // endregion
@@ -27,6 +29,8 @@ document.addEventListener('DOMContentLoaded', () => {
             selectJob(jobCard);
         }
     }
+
+    addCandidatesBtn.disabled = selectedJobElement === null;
 
     attachCheckboxListeners();
 });
@@ -127,6 +131,8 @@ function selectJob(newElement) {
     // Update UI
     updateJobDetailsTable(jobData);
     updateCandidatesTable();
+
+    addCandidatesBtn.disabled = selectedJobElement === null;
 
     sessionStorage.setItem('lastSelectedJobId', selectedJobIDHiddenInput.value);
 }

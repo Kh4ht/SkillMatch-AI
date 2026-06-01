@@ -174,7 +174,7 @@
             <input type="file" id="resumeUpload" name="resumeUpload" style="display: none;" accept=".pdf,.doc,.docx"
                 multiple onchange="document.getElementById('add-candidates-form').submit();" required>
             <input type="hidden" name="selected_job_id" id="selected_job_id" value="">
-            <button style="margin-top: 40px; width: 100%;" class="btn" type="button"
+            <button id="add-candidates-btn" style="margin-top: 40px; width: 100%;" class="btn" type="button"
                 onclick="document.getElementById('resumeUpload').click();">
                 <i class="fa-solid fa-plus"></i> Add Candidates
             </button>
