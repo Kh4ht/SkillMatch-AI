@@ -6,40 +6,170 @@
 
 {% block style %}
 <style>
-    :root { --bg-image: url("/static/images/image9.jpg"); }
-    .glass { background:rgba(255,255,255,.78); backdrop-filter:blur(12px); -webkit-backdrop-filter:blur(12px); border:1px solid rgba(255,255,255,.55); border-radius:14px; padding:28px; box-shadow:0 8px 28px rgba(0,0,0,.15); margin-bottom:16px; }
-    .section-title { font-size:13px; font-weight:600; letter-spacing:.06em; text-transform:uppercase; color:#667eea; margin-bottom:18px; }
-    .setting-row { display:flex; justify-content:space-between; align-items:center; padding:16px 0; border-bottom:1px solid rgba(220,220,220,.5); gap:20px; }
-    .setting-row:last-child { border-bottom:none; padding-bottom:0; }
-    .setting-label { display:flex; flex-direction:column; gap:3px; }
-    .setting-label strong { font-size:15px; color:#1a2535; }
-    .setting-label span { font-size:13px; color:#777; }
+    :root {
+        --bg-image: url("/static/images/image9.jpg");
+    }
+
+    .glass {
+        background: rgba(255, 255, 255, .78);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border: 1px solid rgba(255, 255, 255, .55);
+        border-radius: 14px;
+        padding: 28px;
+        box-shadow: 0 8px 28px rgba(0, 0, 0, .15);
+        margin-bottom: 16px;
+    }
+
+    .section-title {
+        font-size: 13px;
+        font-weight: 600;
+        letter-spacing: .06em;
+        text-transform: uppercase;
+        color: #667eea;
+        margin-bottom: 18px;
+    }
+
+    .setting-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 16px 0;
+        border-bottom: 1px solid rgba(220, 220, 220, .5);
+        gap: 20px;
+    }
+
+    .setting-row:last-child {
+        border-bottom: none;
+        padding-bottom: 0;
+    }
+
+    .setting-label {
+        display: flex;
+        flex-direction: column;
+        gap: 3px;
+    }
+
+    .setting-label strong {
+        font-size: 15px;
+        color: #1a2535;
+    }
+
+    .setting-label span {
+        font-size: 13px;
+        color: #777;
+    }
 
     /* TOGGLE */
-    .toggle { position:relative; width:48px; height:26px; flex-shrink:0; }
-    .toggle input { opacity:0; width:0; height:0; }
-    .slider { position:absolute; cursor:pointer; inset:0; background:#ccc; border-radius:26px; transition:.3s; }
-    .slider::before { content:""; position:absolute; width:20px; height:20px; left:3px; bottom:3px; background:white; border-radius:50%; transition:.3s; box-shadow:0 1px 4px rgba(0,0,0,.2); }
-    .toggle input:checked + .slider { background:linear-gradient(135deg,#4CAF50,#208223); }
-    .toggle input:checked + .slider::before { transform:translateX(22px); }
+    .toggle {
+        position: relative;
+        width: 48px;
+        height: 26px;
+        flex-shrink: 0;
+    }
+
+    .toggle input {
+        opacity: 0;
+        width: 0;
+        height: 0;
+    }
+
+    .slider {
+        position: absolute;
+        cursor: pointer;
+        inset: 0;
+        background: #ccc;
+        border-radius: 26px;
+        transition: .3s;
+    }
+
+    .slider::before {
+        content: "";
+        position: absolute;
+        width: 20px;
+        height: 20px;
+        left: 3px;
+        bottom: 3px;
+        background: white;
+        border-radius: 50%;
+        transition: .3s;
+        box-shadow: 0 1px 4px rgba(0, 0, 0, .2);
+    }
+
+    .toggle input:checked+.slider {
+        background: linear-gradient(135deg, #4CAF50, #208223);
+    }
+
+    .toggle input:checked+.slider::before {
+        transform: translateX(22px);
+    }
 
     /* Dark mode toggle gets special colour */
-    #darkModeToggle:checked + .slider { background:linear-gradient(135deg,#667eea,#764ba2); }
+    #darkModeToggle:checked+.slider {
+        background: linear-gradient(135deg, #667eea, #764ba2);
+    }
 
-    .setting-select { padding:8px 12px; border:1.5px solid #e0e0e0; border-radius:8px; font-size:14px; font-family:inherit; background:rgba(249,249,249,.9); color:#333; outline:none; cursor:pointer; transition:all .2s; }
-    .setting-select:focus { border-color:#007bff; box-shadow:0 0 0 3px rgba(0,123,255,.1); }
+    .setting-select {
+        padding: 8px 12px;
+        border: 1.5px solid #e0e0e0;
+        border-radius: 8px;
+        font-size: 14px;
+        font-family: inherit;
+        background: rgba(249, 249, 249, .9);
+        color: #333;
+        outline: none;
+        cursor: pointer;
+        transition: all .2s;
+    }
+
+    .setting-select:focus {
+        border-color: #007bff;
+        box-shadow: 0 0 0 3px rgba(0, 123, 255, .1);
+    }
 
     /* ── DARK MODE OVERRIDES ── */
-    body.dark-mode { background-color: #0f1117; }
-    body.dark-mode .glass { background:rgba(30,32,44,.88); border-color:rgba(255,255,255,.1); }
-    body.dark-mode .setting-label strong { color:#e2e8f0; }
-    body.dark-mode .setting-label span { color:#94a3b8; }
-    body.dark-mode .section-title { color:#a78bfa; }
-    body.dark-mode h1 { color:#e2e8f0; }
-    body.dark-mode p { color:#94a3b8; }
-    body.dark-mode .setting-select { background:#1e2030; color:#e2e8f0; border-color:#374151; }
-    body.dark-mode .setting-row { border-bottom-color:rgba(255,255,255,.08); }
-    body.dark-mode .navbar { background:linear-gradient(135deg,#0f1117 0%,#1a1d2e 100%); }
+    body.dark-mode {
+        background-color: #0f1117;
+    }
+
+    body.dark-mode .glass {
+        background: rgba(30, 32, 44, .88);
+        border-color: rgba(255, 255, 255, .1);
+    }
+
+    body.dark-mode .setting-label strong {
+        color: #e2e8f0;
+    }
+
+    body.dark-mode .setting-label span {
+        color: #94a3b8;
+    }
+
+    body.dark-mode .section-title {
+        color: #a78bfa;
+    }
+
+    body.dark-mode h1 {
+        color: #e2e8f0;
+    }
+
+    body.dark-mode p {
+        color: #94a3b8;
+    }
+
+    body.dark-mode .setting-select {
+        background: #1e2030;
+        color: #e2e8f0;
+        border-color: #374151;
+    }
+
+    body.dark-mode .setting-row {
+        border-bottom-color: rgba(255, 255, 255, .08);
+    }
+
+    body.dark-mode .navbar {
+        background: linear-gradient(135deg, #0f1117 0%, #1a1d2e 100%);
+    }
 </style>
 {% endblock style %}
 
@@ -47,7 +177,8 @@
 
 <div class="glass">
     <h1 style="font-size:22px;color:#1a2535;margin-bottom:6px;"><i class="fas fa-cog"></i> Settings</h1>
-    <p style="color:#666;font-size:14px;margin-bottom:24px;">Manage your account preferences and application settings.</p>
+    <p style="color:#666;font-size:14px;margin-bottom:24px;">Manage your account preferences and application settings.
+    </p>
 
     <!-- Dark Mode — top of the page, prominent -->
     <p class="section-title">Appearance</p>
@@ -95,25 +226,22 @@
             <strong><i class="fas fa-language"></i> Language</strong>
             <span>Choose the display language</span>
         </div>
-        <select class="setting-select"><option>English</option><option>Arabic</option><option>French</option></select>
+        <select class="setting-select">
+            <option>English</option>
+            <option>Arabic</option>
+            <option>French</option>
+        </select>
     </div>
     <div class="setting-row">
         <div class="setting-label">
             <strong><i class="fas fa-list-ol"></i> Results Per Page</strong>
             <span>Number of candidates shown per page</span>
         </div>
-        <select class="setting-select"><option>10</option><option selected>25</option><option>50</option><option>100</option></select>
-    </div>
-    <div class="setting-row">
-        <div class="setting-label">
-            <strong><i class="fas fa-sort-amount-down"></i> Default Sort</strong>
-            <span>Default candidate sort order</span>
-        </div>
         <select class="setting-select">
-            <option selected>Match Score (High to Low)</option>
-            <option>Match Score (Low to High)</option>
-            <option>Name (A-Z)</option>
-            <option>Date Added</option>
+            <option>10</option>
+            <option selected>25</option>
+            <option>50</option>
+            <option>100</option>
         </select>
     </div>
 </div>
@@ -140,20 +268,20 @@
 
 {% block script %}
 <script>
-function applyDarkMode(on) {
-    document.documentElement.classList.toggle('dark-mode', on);
-}
+    function applyDarkMode(on) {
+        document.documentElement.classList.toggle('dark-mode', on);
+    }
 
-function toggleDarkMode(on) {
-    localStorage.setItem('darkMode', on ? '1' : '0');
-    applyDarkMode(on);
-}
+    function toggleDarkMode(on) {
+        localStorage.setItem('darkMode', on ? '1' : '0');
+        applyDarkMode(on);
+    }
 
-// On page load, sync the toggle state
-(function() {
-    var saved = localStorage.getItem('darkMode') === '1';
-    var toggle = document.getElementById('darkModeToggle');
-    if (toggle) toggle.checked = saved;
-})();
+    // On page load, sync the toggle state
+    (function () {
+        var saved = localStorage.getItem('darkMode') === '1';
+        var toggle = document.getElementById('darkModeToggle');
+        if (toggle) toggle.checked = saved;
+    })();
 </script>
 {% endblock script %}
