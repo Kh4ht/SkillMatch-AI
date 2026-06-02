@@ -30,7 +30,6 @@ th {
     font-weight: 500;
     font-size: 16px;
     text-align: left;
-
 }
 
 td {
@@ -38,7 +37,6 @@ td {
     border-bottom: 1px solid #e0e0e0;
     color: #333;
     text-align: left;
-
 }
 
 tbody tr:hover {

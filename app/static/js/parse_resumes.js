@@ -204,7 +204,6 @@ function updateCandidatesTable() {
             resumeLink.textContent = 'View';
             resumeLink.className = 'view-btn';
             resumeLink.target = '_blank';
-            resumeLink.style.textDecoration = 'none';
             resumeLink.style.fontWeight = 'bold';
             resumeCell.appendChild(resumeLink);
         } else {
