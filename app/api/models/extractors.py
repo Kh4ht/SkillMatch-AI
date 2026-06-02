@@ -157,16 +157,19 @@ class Extractors:
         """Extract experience years handling inline or next-line format."""
         text_lower = text.lower()
         lines = [line.strip() for line in text_lower.split("\n") if line.strip()]
+        exp_years = 0
 
-        # 1. فحص السطر التالي مباشرة بعد كلمة Experience (مثل ملف الورد)
         for i, line in enumerate(lines):
             if "experience" in line and i + 1 < len(lines):
                 next_line = lines[i + 1]
                 match = re.search(r"(\d+)", next_line)
                 if match:
-                    return int(match.group(1))
+                    exp_years = int(match.group(1))
+                    if (
+                        exp_years >= 0 and exp_years <= 50
+                    ):  # Validate reasonable experience range
+                        return exp_years
 
-        # 2. فحص الأنماط المدمجة في نفس السطر (للـ PDF)
         patterns = [
             r"(\d+)\s*[-+]*\s*years?\s+of\s+experience",
             r"(\d+)\s*[-+]*\s*years?\s+experience",
@@ -178,10 +181,14 @@ class Extractors:
             match = re.search(pattern, text_lower)
             if match:
                 try:
-                    return int(match.group(1))
+                    exp_years = int(match.group(1))
+                    if (
+                        exp_years >= 0 and exp_years <= 50
+                    ):  # Validate reasonable experience range
+                        return exp_years
                 except ValueError:
                     continue
 
-        return 0
+        return exp_years
 
     # endregion
