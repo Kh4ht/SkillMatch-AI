@@ -371,7 +371,7 @@ class User(UserMixin):
             file_text=file_text,
             education=education,
             skills=", ".join(skills),
-            experience_years=experience_years if 0 <= experience_years <= 50 else 0,
+            experience_years=experience_years,
             match_score=match_score,  # Store As Percentage
         )
 

@@ -4,6 +4,7 @@
 import re
 import pdfplumber
 from docx import Document
+from datetime import datetime
 
 # Local Imports
 from ..utils.utils import Utils
@@ -154,27 +155,48 @@ class Extractors:
 
     @staticmethod
     def extract_experience_years(text: str) -> int:
-        """Extract experience years handling inline or next-line format."""
-        text_lower = text.lower()
-        lines = [line.strip() for line in text_lower.split("\n") if line.strip()]
-        exp_years = 0
+        """Extract experience years including start-year ranges like 2021 - Present."""
 
-        for i, line in enumerate(lines):
-            if "experience" in line and i + 1 < len(lines):
-                next_line = lines[i + 1]
-                match = re.search(r"(\d+)", next_line)
+        current_year = datetime.now().year
+        text_lower = text.lower()
+
+        # normalize text
+        lines = [line.strip() for line in text_lower.split("\n") if line.strip()]
+
+        # -----------------------------
+        # 1. Handle YEAR RANGE patterns (most important fix)
+        # -----------------------------
+        range_patterns = [
+            r"(\d{4})\s*[-–]\s*(present|current|\d{4})",
+            r"(\d{4})\s*to\s*(present|current|\d{4})",
+        ]
+
+        for line in lines:
+            for pattern in range_patterns:
+                match = re.search(pattern, line)
                 if match:
-                    exp_years = int(match.group(1))
-                    if (
-                        exp_years >= 0 and exp_years <= 50
-                    ):  # Validate reasonable experience range
+                    start_year = int(match.group(1))
+                    end_part = match.group(2)
+
+                    # if still working
+                    if end_part in ["present", "current"]:
+                        end_year = current_year
+                    else:
+                        end_year = int(end_part)
+
+                    exp_years = end_year - start_year
+
+                    if 0 <= exp_years <= 50:
                         return exp_years
 
+        # -----------------------------
+        # 2. Handle normal "X years experience"
+        # -----------------------------
         patterns = [
             r"(\d+)\s*[-+]*\s*years?\s+of\s+experience",
             r"(\d+)\s*[-+]*\s*years?\s+experience",
             r"experience\s*:\s*(\d+)\s*years?",
-            r"(\d+)\s*[-+]*\s*years?\s+exp",
+            r"(\d+)\s*[-+]*\s*years?\s*exp",
         ]
 
         for pattern in patterns:
@@ -182,13 +204,14 @@ class Extractors:
             if match:
                 try:
                     exp_years = int(match.group(1))
-                    if (
-                        exp_years >= 0 and exp_years <= 50
-                    ):  # Validate reasonable experience range
+                    if 0 <= exp_years <= 50:
                         return exp_years
                 except ValueError:
                     continue
 
-        return exp_years
+        # -----------------------------
+        # 3. fallback
+        # -----------------------------
+        return 0
 
     # endregion
