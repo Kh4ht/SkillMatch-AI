@@ -19,9 +19,9 @@ const selectAllCandidates = document.getElementById('select-all-candidates');
 
 let selectedJobElement = null;
 let matchScoreSortOrder = 'desc';
+let experienceSortOrder = 'desc';
 
 // endregion
-
 // region EVENT LISTENERS
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -153,11 +153,23 @@ function selectJob(newElement) {
 }
 
 // endregion
-// region updateCandidatesTable
+// region CANDIDATES TABLE
 
-function updateCandidatesTable() {
+function updateCandidatesTable(sortBy = 'match_score') {
     const candidates = JSON.parse(selectedJobElement.dataset.candidates);
+
     candidates.sort((a, b) => {
+
+        if (sortBy === 'experience') {
+            const expA = parseFloat(a.experience) || 0;
+            const expB = parseFloat(b.experience) || 0;
+
+            return experienceSortOrder === 'asc'
+                ? expA - expB
+                : expB - expA;
+        }
+
+        // Default: Match Score
         const scoreA = parseFloat(a.match_score) || 0;
         const scoreB = parseFloat(b.match_score) || 0;
 
@@ -233,7 +245,7 @@ function updateCandidatesTable() {
 }
 
 // endregion
-// region updateJobDetailsTable
+// region JOB DETAILS TABLE
 
 function updateJobDetailsTable(jobData) {
     // Get the table body
@@ -336,7 +348,7 @@ function updateEditJobWindow(jobId, jobTitle, jobDescription) {
 }
 
 // endregion
-// region toggleMatchScoreSort
+// region TABLE SORTING
 
 function toggleMatchScoreSort() {
     matchScoreSortOrder =
@@ -344,7 +356,16 @@ function toggleMatchScoreSort() {
             ? 'asc'
             : 'desc';
 
-    updateCandidatesTable();
+    updateCandidatesTable('match_score');
+}
+
+function toggleExperienceSort() {
+    experienceSortOrder =
+        experienceSortOrder === 'desc'
+            ? 'asc'
+            : 'desc';
+
+    updateCandidatesTable('experience');
 }
 
 // endregion
