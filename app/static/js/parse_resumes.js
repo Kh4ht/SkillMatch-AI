@@ -18,6 +18,7 @@ const addCandidatesBtn = document.getElementById('add-candidates-btn');
 const selectAllCandidates = document.getElementById('select-all-candidates');
 
 let selectedJobElement = null;
+let matchScoreSortOrder = 'desc';
 
 // endregion
 
@@ -156,6 +157,15 @@ function selectJob(newElement) {
 
 function updateCandidatesTable() {
     const candidates = JSON.parse(selectedJobElement.dataset.candidates);
+    candidates.sort((a, b) => {
+        const scoreA = parseFloat(a.match_score) || 0;
+        const scoreB = parseFloat(b.match_score) || 0;
+
+        return matchScoreSortOrder === 'asc'
+            ? scoreA - scoreB
+            : scoreB - scoreA;
+    });
+
     const selectedJobId = selectedJobElement.dataset.jobId;
 
     // Get the table body
@@ -323,6 +333,18 @@ function updateEditJobWindow(jobId, jobTitle, jobDescription) {
     editJobWindow.querySelector('#edited_job_title').value = jobTitle;
     editJobWindow.querySelector('#edited_job_description').value = jobDescription;
     editJobWindow.querySelector('#edited_job_id').value = jobId;
+}
+
+// endregion
+// region toggleMatchScoreSort
+
+function toggleMatchScoreSort() {
+    matchScoreSortOrder =
+        matchScoreSortOrder === 'desc'
+            ? 'asc'
+            : 'desc';
+
+    updateCandidatesTable();
 }
 
 // endregion

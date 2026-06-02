@@ -354,7 +354,7 @@ def add_candidates_submit():
                     file_size=float(file_size_bytes),
                     file_text=file_text,
                     education=extracted_education,
-                    skills=extracted_skills_list,  # 👈 مرر القائمة مباشرة هنا لحل التشوهات
+                    skills=extracted_skills_list,
                     experience_years=extracted_experience,
                     match_score=calculated_score,
                 )
