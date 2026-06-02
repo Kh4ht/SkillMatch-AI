@@ -193,10 +193,12 @@ class Extractors:
         # 2. Handle normal "X years experience"
         # -----------------------------
         patterns = [
-            r"(\d+)\s*[-+]*\s*years?\s+of\s+experience",
-            r"(\d+)\s*[-+]*\s*years?\s+experience",
-            r"experience\s*:\s*(\d+)\s*years?",
-            r"(\d+)\s*[-+]*\s*years?\s*exp",
+            # (40 years), 40 years, 40years, 40 yrs, etc.
+            r"\(?\s*(\d{1,2})\s*(?:\+|-)?\s*(?:year|years|yr|yrs)\s*\)?",
+            # experience: 40 years / experience 40 years
+            r"experience\s*[:\-]?\s*\(?\s*(\d{1,2})\s*(?:\+|-)?\s*(?:year|years|yr|yrs)\s*\)?",
+            # 40 years experience / 40yrs exp / 40 years exp
+            r"\(?\s*(\d{1,2})\s*(?:\+|-)?\s*(?:year|years|yr|yrs)\s*\)?\s*(?:of\s*)?(?:experience|exp)",
         ]
 
         for pattern in patterns:

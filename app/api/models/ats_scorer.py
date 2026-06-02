@@ -557,13 +557,18 @@ def auto_extract_job_requirements(
 
     # ── Experience ────────────────────────────────────────────────────
     exp_patterns = [
-        r"(\d+)\s*\+?\s*years?\s+of\s+experience",
-        r"(\d+)\s*\+?\s*years?\s+experience",
-        r"minimum\s+(?:of\s+)?(\d+)\s+years?",
-        r"at\s+least\s+(\d+)\s+years?",
-        r"(\d+)\s*\+\s*years?",
-        r"(\d+)\s*[-\u2013]\s*\d+\s*years?",
+        # 40+ exp / 40+ years / 40+ yrs experience
+        r"(\d+)\s*\+\s*(?:(?:year|years|yr|yrs)\s*)?(?:of\s*)?(?:experience|exp)?",
+        # 40 exp / 40 years / 40yrs exp
+        r"(\d+)\s*(?:(?:year|years|yr|yrs)\s*)?(?:of\s*)?(?:experience|exp)",
+        # minimum 40 exp / min40 exp / minimum 40 years
+        r"(?:minimum|min)\s*(?:of\s*)?\s*(\d+)\s*(?:(?:year|years|yr|yrs)\s*)?(?:of\s*)?(?:experience|exp)?",
+        # at least 40 exp / atleast40 exp
+        r"at\s*least\s*(\d+)\s*(?:(?:year|years|yr|yrs)\s*)?(?:of\s*)?(?:experience|exp)?",
+        # 3-5 years experience / 3-5 exp
+        r"(\d+)\s*[-\u2013]\s*\d+\s*(?:(?:year|years|yr|yrs)\s*)?(?:of\s*)?(?:experience|exp)?",
     ]
+
     seniority = {
         "principal": 7,
         "staff": 6,
