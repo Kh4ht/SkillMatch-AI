@@ -7,7 +7,7 @@
 {% block style %}
 <style>
     :root {
-        --bg-image: url("/static/images/image2.jpg");
+        --bg-image: url("https://images.unsplash.com/photo-1497366216548-37526070297c?w=1600");
     }
 
     .edit-job-button {
@@ -247,6 +247,7 @@
                     Paste the full job description. Skills, experience, and education requirements
                     will be extracted automatically — no manual setup needed.
                 </p>
+
                 <textarea name="job_description" id="job_description"
                     placeholder="e.g., We are looking for a Senior Python Developer with 5+ years of experience in machine learning and REST APIs. A Bachelor's degree in Computer Science is required..."
                     rows="8"
@@ -285,6 +286,7 @@
                     Paste the full job description. Skills, experience, and education requirements
                     will be extracted automatically — no manual setup needed.
                 </p>
+
                 <textarea name="edited_job_description" id="edited_job_description"
                     placeholder="e.g., We are looking for a Senior Python Developer with 5+ years of experience in machine learning and REST APIs. A Bachelor's degree in Computer Science is required..."
                     rows="8"
@@ -301,4 +303,28 @@
 
 {% block script %}
 <script src="{{ url_for('static', filename='js/parse_resumes.js') }}"></script>
+<script>
+function updateWordCount(taId, counterId) {
+    var ta = document.getElementById(taId);
+    var counter = document.getElementById(counterId);
+    if (!ta || !counter) return;
+    var words = ta.value.trim() === '' ? 0 : ta.value.trim().split(/\s+/).length;
+    counter.textContent = words + ' word' + (words !== 1 ? 's' : '');
+    if (words >= 30) {
+        counter.style.color = '#40a870';
+        counter.title = 'Good — scoring is fully active';
+    } else {
+        counter.style.color = '#aaa';
+        counter.title = 'Write more than 30 words for best results';
+    }
+}
+function updateEditJobWindow(jobId, jobTitle, jobDescription) {
+    var ta = document.getElementById('edited_job_title');
+    if (ta) ta.value = jobTitle;
+    var td = document.getElementById('edited_job_description');
+    if (td) { td.value = jobDescription; updateWordCount('edited_job_description', 'edit_jd_word_count'); }
+    var ji = document.getElementById('edited_job_id');
+    if (ji) ji.value = jobId;
+}
+</script>
 {% endblock script %}
