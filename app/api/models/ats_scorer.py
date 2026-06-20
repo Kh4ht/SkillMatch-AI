@@ -990,13 +990,30 @@ def calculate_match_score(
     """
     Weighted ensemble. Returns float in [0.0, 100.0].
 
-    Weight allocation:
-    - Exp + Edu take their share (based on JD signals).
-    - Remaining goes to skills + text similarity.
-    - TF-IDF / BM25 / SBERT only get weight when JD has ≥30 words.
-      For short/skills-only JDs they are unreliable and get W=0.
-    - Skill match always gets the bulk of the remaining weight.
-    - If ALL required skills are missing → 0%.
+    SCORING MODEL — skill match sets a floor, text similarity fine-tunes upward:
+    -----------------------------------------------------------------------
+    Skill match (sem_ratio) is the primary, most trustworthy signal — it
+    checks whether the exact required skills exist in the CV. TF-IDF, BM25,
+    and SBERT measure broader vocabulary/semantic overlap between the full
+    CV and JD text, which is a noisier, secondary signal.
+
+    If we treated them as simple additive weighted terms, a CV that matches
+    100% of required skills could still be dragged down by low text overlap
+    (e.g. JD="basketball player", CV mentions Photoshop/Figma/etc + Basketball
+    — skill match is perfect, but the CV's vocabulary mostly doesn't overlap
+    with the short JD, so raw TF-IDF/BM25 would unfairly cut the score).
+
+    To fix this, text similarity can only fill the *gap* left by skill match,
+    scaled down — it never subtracts from a skill match that's already high.
+        effective_semantic = sem_ratio + (1 - sem_ratio) * text_sim * 0.4
+    When sem_ratio = 1.0 (perfect skill match) → effective_semantic = 1.0,
+    text similarity has zero room to hurt the score.
+    When sem_ratio = 0.0 → text similarity can still contribute up to 40%
+    of the remaining gap, which helps distinguish CVs with no exact skill
+    match but related vocabulary from CVs with none at all.
+
+    Experience and education are scored and weighted separately, unaffected
+    by this blending, and always contribute even when skills are 0%.
     """
     if not job_requirements:
         return 0.0
@@ -1013,78 +1030,58 @@ def calculate_match_score(
         job_requirements.min_years_exp = auto["min_years_exp"]
         job_requirements.min_edu_weight = auto["min_edu_weight"]
         job_requirements.min_exp_weight = auto["min_exp_weight"]
-        jd_word_count = auto.get("jd_word_count", _jd_word_count(jd_text))
-    else:
-        jd_word_count = 0
 
     if not jd_text:
         jd_text = " ".join((job_requirements.skillname_skillweight_dict or {}).keys())
 
     has_text = bool(resume_text and jd_text)
-    text_reliable = _text_similarity_is_reliable(jd_text)  # ≥30 words
     sbert_available = has_text and _get_sbert_model() is not None
 
     job_skills = job_requirements.skillname_skillweight_dict or {}
 
-    # ── Skill matching ───────────────────────────────────────────────
+    # ── Skill matching (primary signal) ────────────────────────────────
     if job_skills:
         sem_ratio, matched, missing = _semantic_skill_score(
             resume_text if resume_text else " ".join(extracted_skills),
             job_skills,
         )
-        # NOTE: we no longer force 0% when skills are missing.
-        # Education and experience still contribute their weighted share.
-        # A CV with no matching skills but correct education/experience
-        # will score low but not zero — which is fairer.
     else:
         sem_ratio = 1.0
 
-    # ── Weight allocation ────────────────────────────────────────────
-    #
-    # Rule: TF-IDF / BM25 / SBERT only get weight when JD ≥ 30 words.
-    # For short JDs (skills only, no context), semantic skill match is
-    # the only reliable signal and gets all non-exp/edu weight.
-    #
-    # This ensures: JD="basketball player", CV has "Basketball" → 100%.
-    #
+    # ── Text similarity (secondary signal, used only to fill the gap) ──
+    text_sim_avg = 0.0
+    if has_text:
+        signals = []
+        signals.append(_tfidf_cosine(resume_text, jd_text))
+        signals.append(_bm25(jd_text, resume_text))
+        if sbert_available:
+            signals.append(_sbert_cosine(resume_text, jd_text))
+        text_sim_avg = sum(signals) / len(signals)
+
+    # Blend: text similarity can only fill part of the gap left by skill match.
+    # GAP_FILL_RATE controls how much influence text similarity has on the
+    # remaining (1 - sem_ratio) gap. 0.4 = text can close at most 40% of the gap.
+    GAP_FILL_RATE = 0.4
+    gap = 1.0 - sem_ratio
+    effective_semantic = sem_ratio + gap * text_sim_avg * GAP_FILL_RATE
+    effective_semantic = min(1.0, max(0.0, effective_semantic))
+
+    # ── Weight allocation between (skills+text) vs exp vs edu ──────────
     exp_w = job_requirements.min_exp_weight or 0
     edu_w = job_requirements.min_edu_weight or 0
+    struct_total = exp_w + edu_w
 
-    # Actual weights used in scoring (must sum to 1.0)
-    if text_reliable and has_text:
-        if sbert_available:
-            W_SBERT = 0.10; W_TFIDF = 0.08; W_BM25 = 0.12
-        else:
-            W_SBERT = 0.0;  W_TFIDF = 0.12; W_BM25 = 0.18
-        text_total = W_SBERT + W_TFIDF + W_BM25   # 0.30 with SBERT, 0.30 without
-        # Remaining budget split between semantic and exp/edu
-        budget = 1.0 - text_total                   # 0.70
-        struct_share = min(0.35, (exp_w + edu_w) / 100.0) if (exp_w + edu_w) > 0 else 0.0
-        W_EXP = struct_share * (exp_w / (exp_w + edu_w)) if exp_w else 0.0
-        W_EDU = struct_share * (edu_w / (exp_w + edu_w)) if edu_w else 0.0
-        W_SEMANTIC = budget - struct_share          # gets everything not taken by exp/edu
+    if struct_total > 0:
+        struct_share = min(0.40, struct_total / 100.0)
+        W_EXP = struct_share * (exp_w / struct_total) if exp_w else 0.0
+        W_EDU = struct_share * (edu_w / struct_total) if edu_w else 0.0
     else:
-        # Short JD or no full text: semantic is the ONLY signal
-        W_SBERT = 0.0; W_TFIDF = 0.0; W_BM25 = 0.0
-        struct_total = exp_w + edu_w
-        if struct_total > 0:
-            struct_share = min(0.40, struct_total / 100.0)
-            W_EXP = struct_share * (exp_w / struct_total) if exp_w else 0.0
-            W_EDU = struct_share * (edu_w / struct_total) if edu_w else 0.0
-        else:
-            W_EXP = 0.0; W_EDU = 0.0
-        W_SEMANTIC = 1.0 - W_EXP - W_EDU
+        W_EXP = 0.0
+        W_EDU = 0.0
+    W_SEMANTIC = 1.0 - W_EXP - W_EDU
 
-    # ── Compute components ───────────────────────────────────────────
-    total = 0.0
-
-    total += sem_ratio * W_SEMANTIC
-
-    if text_reliable and has_text:
-        total += _tfidf_cosine(resume_text, jd_text) * W_TFIDF
-        total += _bm25(jd_text, resume_text) * W_BM25
-        if sbert_available:
-            total += _sbert_cosine(resume_text, jd_text) * W_SBERT
+    # ── Compute final score ──────────────────────────────────────────
+    total = effective_semantic * W_SEMANTIC
 
     # Experience
     if W_EXP > 0 and exp_w > 0:
