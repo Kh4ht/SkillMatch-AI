@@ -132,7 +132,9 @@ cd skillmatch-ai
 # On Windows
 py -3.11 -m venv .venv311
 .venv311\Scripts\Activate.ps1
+```
 
+```bash
 # On macOS/Linux
 python3.11 -m venv .venv311
 source .venv311/bin/activate
@@ -143,11 +145,13 @@ source .venv311/bin/activate
 ```bash
 # On Windows
 python -m pip install -r requirements.txt
-
+```
 or
-
+```bash
+# On Windows
 py -m pip install -r requirements.txt
-
+```
+```bash
 # On macOS/Linux
 pip install -r requirements.txt
 ```
